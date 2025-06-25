@@ -18,3 +18,4 @@ aiohttp
 bs4
 
 nicegui
+pytz

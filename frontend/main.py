@@ -45,8 +45,8 @@ with ui.row().classes('w-full h-screen'):
         selected_menu = ui.label('自定义内容面板').classes('text-2xl font-bold mb-6 text-blue-700')
 
         # 自定义面板容器 (留出空间供用户自定义)
-        custom_panel = ui.column().classes('w-full h-5/6 bg-white rounded-lg shadow-lg p-6 border border-blue-100')
-        custom_panel.style('overflow-y: auto;')  # 添加滚动条
+        custom_panel = ui.column().classes('w-full h-11/12 bg-white rounded-lg shadow-lg p-4 border border-blue-100')
+        custom_panel.style('overflow-y: auto;')
 
         # 初始占位内容
         with custom_panel:
@@ -65,6 +65,10 @@ def select_menu(item):
 
 
 select_menu(menu_items[0])
+
+# todo: 了解 Tailwind CSS 类，比如：w-full: 宽度为父容器的 100%，h-11/12: 高度为父容器的 11/12 (约 91.67%)
+
+# [note] 收获：ai 编程 + nicegui 可以很快做出不错的静态页面，但是微调有点复杂，可能前端就是如此？
 
 if __name__ == '__main__':
     ui.run(title="柔性配电评估系统", host="localhost", port=12000, reload=False, show=False, favicon="🚀")

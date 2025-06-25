@@ -42,6 +42,8 @@ def assessment_panel(panel, selected_menu):
             },
             'radar': {
                 'indicator': [{'name': d, 'max': 100} for d in dimensions],
+                'radius': '70%',  # 增加雷达图半径
+                'center': ['50%', '50%']  # 确保居中
             },
             'series': [{
                 'type': 'radar',
@@ -49,7 +51,7 @@ def assessment_panel(panel, selected_menu):
                     {'value': list(p['scores'].values()), 'name': p['name']} for p in plans
                 ]
             }]
-        }).classes('w-full h-80 my-4')
+        }).classes('w-full h-[500px] my-4')
 
         # 下方：指标分析图
         with ui.tabs() as tabs:
@@ -57,7 +59,7 @@ def assessment_panel(panel, selected_menu):
                 ui.tab(dim)
 
         with ui.tab_panels(tabs=tabs, value=dimensions[0]).classes('w-full'):
-            ui.label("指标分析图")
+            ui.label("指标分析图").classes('mb-2')
             for dim in dimensions:
                 with ui.tab_panel(dim):
                     ui.label('详细指标分析').classes('font-bold mb-2')
@@ -79,4 +81,4 @@ def assessment_panel(panel, selected_menu):
                                 'data': [v[i] for v in subs.values()]
                             } for i in range(3)
                         ]
-                    }).classes('w-full h-80')
+                    }).classes('w-full h-[500px] min-h-[300px]')

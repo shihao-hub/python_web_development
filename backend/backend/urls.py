@@ -24,12 +24,13 @@ from apps.testdrfapi.views import router as drfapi_router
 from apps.account import views as account_views
 
 urlpatterns = [
-    path('powernetwork/', include(powernetwork_router.urls)),
     path('testdrfapi/', include(drfapi_router.urls)),
+
+    path('powernetwork/', include(powernetwork_router.urls)),
+
     path('login', account_views.LoginAPIView.as_view()),
     path('logout', account_views.LogoutAPIView.as_view()),
 
-    path('api/', ninjaapi_api.urls),
 ]
 
 if settings.DEBUG:
@@ -41,4 +42,7 @@ if settings.DEBUG:
         # 用于测试和开发环境，生产环境应使用更安全的认证方式(Token, JWT等)
         # api-auth/ 可以自由修改。登录视图：api-auth/login/，注销视图：api-auth/logout/
         path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+
+        # django-ninja, my tools
+        path('api/', ninjaapi_api.urls),
     ]
