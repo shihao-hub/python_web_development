@@ -97,7 +97,7 @@ def account_tree_panel(panel, selected_menu):
             refresh_btn = ui.button('刷新', icon='refresh').classes('ml-4')
 
         # 图表区
-        chart = ui.echart(get_topology_option('force', 15)).classes('w-full h-3/4 bg-white rounded shadow')
+        chart = ui.echart(get_topology_option('force', 15)).classes('w-full h-[600px] min-h-[400px] bg-white rounded shadow')
 
         # 交互逻辑
         def update_chart():
