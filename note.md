@@ -87,6 +87,13 @@ python_web_development/
 ### Django REST framework
 练习经典的组合：Django + Django REST framework
 
+#### ViewSet ModelViewSet DefaultRouter
+ModelViewSet 才能利用 DefaultRouter 的自动文档生成/获得 DRF 的浏览接口支持，ViewSet 不行
+
+---
+
+
+
 ### Django Ninja
 主要目的是练习异步编程 + 只提供 API 接口，不涉及前端
 
@@ -101,6 +108,7 @@ python_web_development/
    每个文件夹的命名能复数的都是复数。
 4. 【推荐优先如此】参考 Django 风格，每个字符串都用单引号包裹，形如：'xxx'
 5. 注释不要在行末尾，就在行头
+6. url 的定义都应该形如 a/b/ 而不要 /a/b
 
 
 ### django-ninja 使用规范
@@ -115,4 +123,42 @@ python_web_development/
 
 ## 总结
 **要频繁记录！做过的事情，必须要及时记录下来！**
+
+---
+
+前后端不分离项目开发流程：
+```mermaid
+graph LR
+    A[提出需求] --> B[前端页面开发]
+    B --> C[翻译成模板]
+    C --> D[前后端对接]
+    D --> E[集成遇到问题]
+    E --> F[前端返工]
+    F --> G[后端返工]
+    G --> H[二次集成]
+    H --> I[集成成功]
+    I --> J[交付上线]
+```
+
+前后端分离项目开发流程：
+```mermaid
+graph LR
+    A[提出需求] --> B[约定接口规范数据格式]
+    B --> C[前后端并行开发]
+    C --> D[前后端对接]
+    D --> E[前端调试效果]
+    E --> F[集成成功]
+    F --> G[交付上线]
+```
+
+数据接口规范流程：
+[click](https://blog.csdn.net/zhangyifeng_1995/article/details/131898576)
+
+---
+
+深入理解什么是 RESTful API：
+- [click](https://docs.github.com/zh/rest/about-the-rest-api/comparing-githubs-rest-api-and-graphql-api?apiVersion=2022-11-28)
+- [click](https://www.imooc.com/article/304756)
+
+---
 
