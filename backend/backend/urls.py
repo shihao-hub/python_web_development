@@ -21,16 +21,14 @@ from django.conf import settings
 from apps.ninjaapi.routers import api as ninjaapi_api
 from apps.powernetwork.views import router as powernetwork_router
 from apps.testdrfapi.views import router as drfapi_router
-from apps.account import views as account_views
+from apps.account.views import router as account_router
 
 urlpatterns = [
     path('testdrfapi/', include(drfapi_router.urls)),
 
+    path('account/', include(account_router.urls)),
+
     path('powernetwork/', include(powernetwork_router.urls)),
-
-    path('login', account_views.LoginAPIView.as_view()),
-    path('logout', account_views.LogoutAPIView.as_view()),
-
 ]
 
 if settings.DEBUG:
