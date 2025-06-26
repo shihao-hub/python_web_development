@@ -17,6 +17,8 @@ class CourseSerializer(serializers.ModelSerializer):
         # exclude = ('id', )
         # fields = ('name', 'introduction', 'teacher', 'price')
         fields = "__all__"
+        # 深度
+        depth = 2
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):

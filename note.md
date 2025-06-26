@@ -120,6 +120,8 @@ ModelViewSet 才能利用 DefaultRouter 的自动文档生成/获得 DRF 的浏�
 4. 【推荐优先如此】参考 Django 风格，每个字符串都用单引号包裹，形如：'xxx'
 5. 注释不要在行末尾，就在行头
 6. url 的定义都应该形如 a/b/ 而不要 /a/b
+7. 任何对外接口的参数都要指明类型
+8. 
 
 
 ### django-ninja 使用规范
