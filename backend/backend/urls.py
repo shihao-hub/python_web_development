@@ -24,22 +24,26 @@ from apps.testdrfapi.views import router as drfapi_router
 from apps.account.views import router as account_router
 
 urlpatterns = [
-    path('testdrfapi/', include(drfapi_router.urls)),
-
-    path('account/', include(account_router.urls)),
+    # todo: [to be confirmed] 确定正式环境是否需要，以及数据库也应该需要隔离
+    # django 后台面板，app 下的 admin.py 的目的就是这个，用于管理后台
+    path('admin/', admin.site.urls),
 
     path('powernetwork/', include(powernetwork_router.urls)),
+
+    # todo: [to be confirmed] 确认一下为什么生产环境无法使用
+    # DRF 的可浏览 API 认证
+    # 用于测试和开发环境，生产环境应使用更安全的认证方式(Token, JWT等)
+    # api-auth/ 可以自由修改。登录视图：api-auth/login/，注销视图：api-auth/logout/
+    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+
+
 ]
 
-if settings.DEBUG:
+if settings.CUSTOM_DEBUG:
     urlpatterns += [
-        # django 后台面板，app 下的 admin.py 的目的就是这个，用于管理后台
-        path('admin/', admin.site.urls),
+        path('testdrfapi/', include(drfapi_router.urls)),
 
-        # DRF 的可浏览 API 认证
-        # 用于测试和开发环境，生产环境应使用更安全的认证方式(Token, JWT等)
-        # api-auth/ 可以自由修改。登录视图：api-auth/login/，注销视图：api-auth/logout/
-        path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+        path('account/', include(account_router.urls)),
 
         # django-ninja, my tools
         path('api/', ninjaapi_api.urls),
