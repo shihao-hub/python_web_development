@@ -10,14 +10,16 @@ from .serializers import UserLoginSerializer, UserSerializer
 class LoginLogoutViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
 
-    @decorators.action(detail=False, methods=['post'], url_path="login/")
+    @decorators.action(detail=False, methods=['post'])
     def login(self, request):
+        # 用户调用登录接口，返回 refresh 和 access
+        # 目前认为大概率需要添加 middleware，等价于手动实现一个校验吧？
         serializer = UserLoginSerializer(data=request.data)
         if serializer.is_valid():
             return Response(serializer.validated_data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @decorators.action(detail=False, methods=['post'], url_path="login/")
+    @decorators.action(detail=False, methods=['post'])
     def logout(self, request):
         logout(request)
         return Response({"message": "Successfully logged out"}, status=status.HTTP_200_OK)
