@@ -84,6 +84,17 @@ python_web_development/
 
 ---
 
+### Django
+```bash
+# 查看可使用的命令
+python ./backend/manager.py help
+# 进入 django shell
+python ./backend/manager.py shell
+```
+
+---
+
+
 ### Django REST framework
 练习经典的组合：Django + Django REST framework
 
@@ -161,4 +172,9 @@ graph LR
 - [click](https://www.imooc.com/article/304756)
 
 ---
+
+ModelViewSet 不如 ViewSet 灵活，属于高度定制类，所以需要将其是为工具，学习如何使用它即可。
+
+---
+
 

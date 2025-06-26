@@ -31,7 +31,4 @@ class UserDetailModelViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
 
 
-router = routers.DefaultRouter()
-# todo: [to be understood] why the router is not working(api doc is not showing)
-router.register(r"loginlogout", LoginLogoutViewSet, basename="login-logout")
-router.register(r"userdetail", UserDetailModelViewSet)
+

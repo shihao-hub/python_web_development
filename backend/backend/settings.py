@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "rest_framework",
     # DRF 自带的 Token 认证
     "rest_framework.authtoken",
+
     "rest_framework_simplejwt",
     "ninja_extra",
 
@@ -91,7 +92,8 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
     ],
-    "URL_FIELD_NAME": 'link',
+    # todo: [to be understood] URL_FIELD_NAME
+    # "URL_FIELD_NAME": 'link',
 }
 
 MIDDLEWARE = [

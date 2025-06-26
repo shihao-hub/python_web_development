@@ -18,17 +18,12 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 
-from apps.ninjaapi.routers import api as ninjaapi_api
-from apps.powernetwork.views import router as powernetwork_router
-from apps.testdrfapi.views import router as drfapi_router
-from apps.account.views import router as account_router
-
 urlpatterns = [
     # todo: [to be confirmed] 确定正式环境是否需要，以及数据库也应该需要隔离
     # django 后台面板，app 下的 admin.py 的目的就是这个，用于管理后台
     path('admin/', admin.site.urls),
 
-    path('powernetwork/', include(powernetwork_router.urls)),
+    path('powernetwork/', include("apps.powernetwork.urls")),
 
     # todo: [to be confirmed] 确认一下为什么生产环境无法使用
     # DRF 的可浏览 API 认证
@@ -36,15 +31,18 @@ urlpatterns = [
     # api-auth/ 可以自由修改。登录视图：api-auth/login/，注销视图：api-auth/logout/
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
-
+    # todo: 生成一个欢迎页面 protocol://domain:port
 ]
 
 if settings.CUSTOM_DEBUG:
-    urlpatterns += [
-        path('testdrfapi/', include(drfapi_router.urls)),
+    from apps.ninjaapi.routers import api as ninjaapi_api
 
-        path('account/', include(account_router.urls)),
+    urlpatterns += [
+        path('testdrfapi/', include("apps.testdrfapi.urls")),
+
+        path('account/', include("apps.account.urls")),
 
         # django-ninja, my tools
+        # todo: use urls.py
         path('api/', ninjaapi_api.urls),
     ]
