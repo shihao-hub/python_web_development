@@ -25,6 +25,7 @@ SECRET_KEY = 'django-insecure-ok))2mb#mev0$i$9i9-c9130*r26iveph$$=-927l(uwp9i4(k
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+CUSTOM_DEBUG = DEBUG and True
 
 ALLOWED_HOSTS = []
 
@@ -47,8 +48,8 @@ INSTALLED_APPS = [
     "rest_framework",
     # DRF 自带的 Token 认证
     "rest_framework.authtoken",
-    "ninja_extra",
     "rest_framework_simplejwt",
+    "ninja_extra",
 
     "apps.testdjangoapi",
     "apps.testdrfapi",
