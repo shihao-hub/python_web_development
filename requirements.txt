@@ -4,6 +4,9 @@ djangorestframework
 django-filter
 markdown
 djangorestframework-simplejwt
+coreapi
+
+django-extensions
 
 django-ninja
 django-ninja-extra
@@ -19,3 +22,5 @@ bs4
 
 nicegui
 pytz
+
+jupyter
