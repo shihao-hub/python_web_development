@@ -1,9 +1,16 @@
+from loguru import logger
+
 from django.http.request import HttpRequest
+from django.conf import settings
 from django.contrib.auth.models import Group, User
-from rest_framework import views, viewsets, decorators, permissions, status
+from django.dispatch import receiver
+from django.db.models.signals import post_save
+from rest_framework import views, viewsets, decorators, permissions, status, generics, mixins
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
 
+# todo: 改为全局形式，应该又是 middleware
 from apps.core import handle_unexpected_exception
 from .serializers import GroupSerializer, UserSerializer, CourseSerializer
 from .models import Course
@@ -27,13 +34,15 @@ class GroupModelViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
 
+# [example] ViewSet
 class TestViewSet(viewsets.ViewSet):
-    @handle_unexpected_exception
     @decorators.action(url_path="test", detail=False, methods=['get'])
+    @handle_unexpected_exception
     def test(self, request: Request) -> Response:
         return Response(status=200, data={"data": "test info"})
 
 
+# [example] DRF 的装饰器 api_view - 函数式编程
 @decorators.api_view(["GET", "POST"])
 @handle_unexpected_exception
 def course_list(request: Request):
@@ -86,6 +95,7 @@ def course_detail(request: Request, pk: int):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+# [example] DRF 中的视图 APIView - 类视图编程
 class CourseList(views.APIView):
     def get(self, request):
         queryset = Course.objects.all()
@@ -101,3 +111,56 @@ class CourseList(views.APIView):
             # type(s.data)： <class 'rest_framework.utils.serializer_helpers.ReturnDict'>
             return Response(data=s.data, status=status.HTTP_201_CREATED)
         return Response(s.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CourseDetail(views.APIView):
+    @staticmethod
+    def get_object(pk):
+        try:
+            return Course.objects.get(pk=pk)
+        except Course.DoesNotExist:
+            return
+
+    def get(self, request, pk):
+        obj = self.get_object(pk=pk)
+        if not obj:
+            return Response(data={"msg": "没有此课程信息"}, status=status.HTTP_404_NOT_FOUND)
+        s = CourseSerializer(instance=obj)
+        return Response(s.data, status=status.HTTP_200_OK)
+
+    def put(self, request, pk):
+        obj = self.get_object(pk=pk)
+        if not obj:
+            return Response(data={"msg": "没有此课程信息"}, status=status.HTTP_404_NOT_FOUND)
+        s = CourseSerializer(instance=obj, data=request.data)
+        if s.is_valid():
+            s.save()
+            return Response(data=s.data, status=status.HTTP_200_OK)
+        return Response(s.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        obj = self.get_object(pk=pk)
+        if not obj:
+            return Response(data={"msg": "没有此课程信息"}, status=status.HTTP_404_NOT_FOUND)
+        obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# [example] DRF 中的视图 GenericAPIView - 通用视图编程
+class GCourseDetail(mixins.RetrieveModelMixin,
+                    mixins.UpdateModelMixin,
+                    mixins.DestroyModelMixin,
+                    generics.GenericAPIView):
+    queryset = Course.objects.all()
+    serializer_class = CourseSerializer
+
+
+# 信号机制自动生成 Token
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)  # Django的信号机制
+def generate_token(sender, instance=None, created=False, **kwargs):
+    """
+    创建用户时自动生成Token
+    """
+    if created:
+        logger.info("用户创建成功，自动生成 Token")
+        Token.objects.create(user=instance)
