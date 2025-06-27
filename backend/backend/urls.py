@@ -17,13 +17,13 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
+from rest_framework.authtoken import views
+from rest_framework.documentation import include_docs_urls
 
 urlpatterns = [
     # todo: [to be confirmed] 确定正式环境是否需要，以及数据库也应该需要隔离
     # django 后台面板，app 下的 admin.py 的目的就是这个，用于管理后台
     path('admin/', admin.site.urls),
-
-    path('powernetwork/', include("apps.powernetwork.urls")),
 
     # todo: [to be confirmed] 确认一下为什么生产环境无法使用
     # DRF 的可浏览 API 认证
@@ -31,6 +31,14 @@ urlpatterns = [
     # api-auth/ 可以自由修改。登录视图：api-auth/login/，注销视图：api-auth/logout/
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
+    # DRF 自带的 token 认证
+    # 获取 token 的接口
+    path('api-token-auth/', views.obtain_auth_token),
+
+    # apps.powernetwork
+    path('powernetwork/', include("apps.powernetwork.urls")),
+
+    # apps.index
     # todo: 生成一个欢迎页面 protocol://domain:port
 ]
 
@@ -42,7 +50,10 @@ if settings.CUSTOM_DEBUG:
 
         path('account/', include("apps.account.urls")),
 
-        # django-ninja, my tools
+        # DRF 自带的文档
+        path(r'drfapi/docs/', include_docs_urls(title='DRF API 文档', description='无')),
+
+        # django-ninja, my exercises
         # todo: use urls.py
         path('api/', ninjaapi_api.urls),
     ]
