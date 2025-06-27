@@ -52,6 +52,8 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "ninja_extra",
 
+    "django_extensions",
+
     "apps.testdjangoapi",
     "apps.testdrfapi",
     "apps.ninjaapi",
@@ -90,10 +92,13 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication',
+        # [command] python manage.py drf_create_token {username} 可以手动生成 Token
         'rest_framework.authentication.TokenAuthentication',
     ],
     # todo: [to be understood] URL_FIELD_NAME
     # "URL_FIELD_NAME": 'link',
+    # DRF 接口文档生成
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
 }
 
 MIDDLEWARE = [
@@ -108,6 +113,98 @@ MIDDLEWARE = [
     # 设置国际化中间件
     "django.middleware.locale.LocaleMiddleware",
 ]
+
+# 创建 logs 文件夹
+
+# django 内置完整的日志记录框架
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+        'json': {
+            '()': 'pythonjsonlogger.jsonlogger.JsonFormatter',
+            'format': '''
+            asctime: %(asctime)s
+            levelname: %(levelname)s
+            message: %(message)s
+            module: %(module)s
+            pathname: %(pathname)s
+            exc_info: %(exc_info)s
+            process: %(process)d
+            thread: %(thread)d
+        '''
+        }
+    },
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'filters': ['require_debug_true'],
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple'
+        },
+        'file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            # 目录不会自动创建
+            'filename': 'logs/django_errors.log',
+            # 5 MB
+            'maxBytes': 1024 * 1024 * 5,
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'mail_admins': {
+            'level': 'ERROR',
+            'filters': ['require_debug_false'],
+            'class': 'django.utils.log.AdminEmailHandler',
+            'include_html': True,
+        },
+        'json_file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'logs/django_errors.json',
+            # 5 MB
+            'maxBytes': 1024 * 1024 * 5,
+            'backupCount': 5,
+            'formatter': 'json',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file', 'mail_admins', 'json_file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'django.request': {
+            'handlers': ['file', 'mail_admins', 'json_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'myapp': {
+            'handlers': ['console', 'file', 'json_file'],
+            'level': 'DEBUG',
+        },
+        'critical': {
+            'handlers': ['mail_admins'],
+            'level': 'CRITICAL',
+        }
+    }
+}
 
 # todo: [to be sloved] 因为 RESTframework 是有前端文件的，后面使用时会全部放到这个目录
 # STATIC_ROOT = BASE_DIR / "static"
