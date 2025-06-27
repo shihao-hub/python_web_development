@@ -118,7 +118,7 @@ ModelViewSet 才能利用 DefaultRouter 的自动文档生成/获得 DRF 的浏�
 3. 文件夹的命名不需要参考 java 的规范：不要复数，由于 django 项目生成的文件全是复数，所以我要求向其看起，
    每个文件夹的命名能复数的都是复数。
 4. 【推荐优先如此】参考 Django 风格，每个字符串都用单引号包裹，形如：'xxx'
-5. 注释不要在行末尾，就在行头
+5. 注释不要在行末尾，就在行头。
 6. url 的定义都应该形如 a/b/ 而不要 /a/b
 7. 任何对外接口的参数都要指明类型
 8. 
@@ -179,4 +179,10 @@ ModelViewSet 不如 ViewSet 灵活，属于高度定制类，所以需要将其�
 
 ---
 
+ipython 可以让 python manager.py shell 的界面更好用
+```bash
+python ./backend/manager.py shell -i ipython
+```
+
+---
 
