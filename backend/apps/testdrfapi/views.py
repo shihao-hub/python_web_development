@@ -1,6 +1,8 @@
 from loguru import logger
 
+from django.shortcuts import render
 from django.http.request import HttpRequest
+from django.core.handlers.wsgi import WSGIRequest
 from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.dispatch import receiver
@@ -11,9 +13,14 @@ from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 
 # todo: 改为全局形式，应该又是 middleware
-from apps.core import handle_unexpected_exception
+from apps.core import handle_unexpected_exception, SuccessResponse, ErrorResponse
 from .serializers import GroupSerializer, UserSerializer, CourseSerializer
 from .models import Course
+
+
+def jupyternotebooks_test(request: WSGIRequest):
+    # todo: 解决 iframe 提示 localhost 已拒绝连接这个问题
+    return render(request, "jupyternotebooks_test.html", context={})
 
 
 class UserModelViewSet(viewsets.ModelViewSet):
@@ -36,10 +43,26 @@ class GroupModelViewSet(viewsets.ModelViewSet):
 
 # [example] ViewSet
 class TestViewSet(viewsets.ViewSet):
-    @decorators.action(url_path="test", detail=False, methods=['get'])
+    @decorators.action(detail=False, methods=['get'])
     @handle_unexpected_exception
     def test(self, request: Request) -> Response:
         return Response(status=200, data={"data": "test info"})
+
+
+class CourseViewSet(viewsets.ViewSet):
+    # 此处不兼容 <int:pk> 格式
+    @decorators.action(detail=False, methods=["post"], url_path=r"get_and_delete/(?P<pk>\d+)")
+    def get_and_delete(self, request: Request, pk: int):
+        logger.info("get_and_delete")
+        logger.info("pk: {}", pk)
+        logger.info("request: {}", request)
+        # todo: 抽取基本方法，如 get_object，因为 objects.get 找不到会出错
+        inst = Course.objects.filter(pk=pk).first()
+        if inst is None:
+            return ErrorResponse("no such course")
+        str_inst = CourseSerializer(instance=inst).data
+        # inst.delete()
+        return SuccessResponse(data={"data": str_inst})
 
 
 # [example] DRF 的装饰器 api_view - 函数式编程
@@ -97,6 +120,8 @@ def course_detail(request: Request, pk: int):
 
 # [example] DRF 中的视图 APIView - 类视图编程
 class CourseList(views.APIView):
+    """ 获取所有课程信息或新增一个课程 """
+
     def get(self, request):
         queryset = Course.objects.all()
         s = CourseSerializer(instance=queryset, many=True)
@@ -114,6 +139,8 @@ class CourseList(views.APIView):
 
 
 class CourseDetail(views.APIView):
+    """ 对单个课程进行 get、put、delete 操作 """
+
     @staticmethod
     def get_object(pk):
         try:
@@ -156,11 +183,9 @@ class GCourseDetail(mixins.RetrieveModelMixin,
 
 
 # 信号机制自动生成 Token
-@receiver(post_save, sender=settings.AUTH_USER_MODEL)  # Django的信号机制
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def generate_token(sender, instance=None, created=False, **kwargs):
-    """
-    创建用户时自动生成Token
-    """
+    # 创建用户时自动生成 Token，注意 createsuperuser 命令似乎不会触发 post_save 信号，admin/ 页面上才会触发
     if created:
         logger.info("用户创建成功，自动生成 Token")
         Token.objects.create(user=instance)
