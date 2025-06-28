@@ -20,11 +20,11 @@ def ui_open(url):
 # 设置页面布局
 with ui.header().classes('bg-blue-500 text-white justify-between'):
     ui.label(f'{TITLE}').classes('text-2xl font-bold')
-    with ui.row():
-        ui.button('待办事项', on_click=lambda: ui_open('#todo-section'))
-        ui.button('天气查询', on_click=lambda: ui_open('#weather-section'))
-        ui.button('关于', on_click=lambda: ui_open('#about-section'))
-        ui.button(icon='dark_mode', on_click=ui.dark_mode.toggle).props('flat')
+    # with ui.row():
+    #     ui.button('待办事项', on_click=lambda: ui_open('#todo-section'))
+    #     ui.button('天气查询', on_click=lambda: ui_open('#weather-section'))
+    #     ui.button('关于', on_click=lambda: ui_open('#about-section'))
+    #     ui.button(icon='dark_mode', on_click=ui.dark_mode.toggle).props('flat')
 
 # 主内容区域
 with ui.tabs().classes('w-full') as tabs:
@@ -39,8 +39,17 @@ with ui.tab_panels(tabs, value=todo_tab).classes('w-full'):
 
 # 页脚
 with ui.footer().classes('bg-blue-500 dark:bg-gray-800 p-4 text-center'):
-    ui.label(
-        f'© 2025 {TITLE} | 当前时间: {datetime.datetime.now(pytz.timezone("Asia/Shanghai")).strftime("%Y-%m-%d %H:%M:%S")}')
+    with ui.row():
+        ui.label(f'© 2025 {TITLE}')
+        current_time = ui.label()
+
+
+        def update_current_time():
+            current_time_str = datetime.datetime.now(pytz.timezone("Asia/Shanghai")).strftime("%Y-%m-%d %H:%M:%S")
+            current_time.text = f"当前时间: {current_time_str}"
+
+
+        ui.timer(1.0, update_current_time)
 
 # 启动应用
 ui.run(title=TITLE, host="localhost", port=13001, favicon='🌤️', dark=False, show=False, reload=False)
