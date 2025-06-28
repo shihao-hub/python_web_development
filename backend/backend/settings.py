@@ -14,7 +14,11 @@ from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+# 项目根目录
 ROOT_DIR = BASE_DIR.parent
+# 源代码所在目录
+SOURCE_DIR = BASE_DIR
+# 资源文件所在目录
 RESOURCES_DIR = ROOT_DIR / "resources"
 
 # Quick-start development settings - unsuitable for production
@@ -114,7 +118,16 @@ MIDDLEWARE = [
     "django.middleware.locale.LocaleMiddleware",
 ]
 
-# 创建 logs 文件夹
+
+# todo: 创建 logs 文件夹
+def _create_logs_directory():
+    logs_directory = ROOT_DIR / "logs"
+    if logs_directory.exists():
+        return
+    logs_directory.mkdir()
+
+
+_create_logs_directory()
 
 # django 内置完整的日志记录框架
 LOGGING = {
