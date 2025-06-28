@@ -94,6 +94,11 @@ python ./backend/manager.py shell
 
 ---
 
+from django.core import serializers 中的 serializers 不必使用了，
+用 drf 的 serializers.ModelSerializer
+
+---
+
 
 ### Django REST framework
 练习经典的组合：Django + Django REST framework
@@ -119,9 +124,12 @@ ModelViewSet 才能利用 DefaultRouter 的自动文档生成/获得 DRF 的浏�
    每个文件夹的命名能复数的都是复数。
 4. 【推荐优先如此】参考 Django 风格，每个字符串都用单引号包裹，形如：'xxx'
 5. 注释不要在行末尾，就在行头。
-6. url 的定义都应该形如 a/b/ 而不要 /a/b
+6. url 的定义都应该形如 a/b/ 而不要 /a/b。
+   但是需要注意的是，我目前认为 a/b 反倒最不错，因为 DefaultRouter 拼接 path 的时候，没有判断 /，直接加 / ...
 7. 任何对外接口的参数都要指明类型
-8. 
+8. 通用的 utils 函数放在指定位置，app 内部使用的，放在内部的 utils 文件夹下。
+   app 内部的 package 中使用的，放在 package 内部的 utils 文件夹下。
+9. 
 
 
 ### django-ninja 使用规范
@@ -133,6 +141,14 @@ ModelViewSet 才能利用 DefaultRouter 的自动文档生成/获得 DRF 的浏�
 ## 使用第三方库
 ### python-dotenv
 
+
+### loguru
+```python
+from loguru import logger
+
+loginfo = "hello world"
+logger.info("{}", loginfo)
+```
 
 ## 总结
 **要频繁记录！做过的事情，必须要及时记录下来！**
@@ -186,3 +202,28 @@ python ./backend/manager.py shell -i ipython
 
 ---
 
+Jupyter notebook 
+
+已迅速成为数据分析，机器学习的必备工具。因为它可以让数据分析师集中精力向用户解释整个分析过程。
+
+[click](https://www.zhihu.com/tardis/zm/ans/254638807)
+
+Jupyter 这个名字是它要服务的三种语言的缩写：Julia，PYThon 和 R，这个名字与 木星（jupiter） 谐音。
+
+```txt
+进入某个目录，执行 jupyter notebook，即可启动一个本地的 Web 服务器，
+如果默认 8888 端口被占用，会选择一个新端口。
+
+注意，进入的那个目录会成为当前 jupyter notebook 的根目录，隔离效果很不错！
+
+而且它是一个 web 服务，所以是可以通过 iframe 将 jupyter notebook 显示界面嵌入到网页中的。
+
+指定启动端口号：jupyter notebook --port 8889
+
+参考链接：
+[网站搭建8：Django项目中嵌入Jupyter notebook](https://zhuanlan.zhihu.com/p/110214228)
+```
+
+
+
+---
