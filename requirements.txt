@@ -12,6 +12,8 @@ django-ninja
 django-ninja-extra
 orjson
 
+pydantic
+
 python-dotenv
 
 loguru
