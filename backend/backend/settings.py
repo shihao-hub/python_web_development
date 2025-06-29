@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "ninja_extra",
 
     "apps.ninjaapi",
+    "apps.index",
     "apps.powernetwork",
     "apps.powernetworkreport",
     "apps.testaccount",
@@ -80,6 +81,7 @@ MIDDLEWARE = [
     "django.middleware.locale.LocaleMiddleware",  # 设置国际化中间件
 
     "middleware.LoginRedirectMiddleware",
+    # "middleware.ReverseProxyMiddleware",
 ]
 
 ROOT_URLCONF = 'backend.urls'

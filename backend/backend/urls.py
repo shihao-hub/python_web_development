@@ -26,6 +26,7 @@ from rest_framework_simplejwt.views import (
 )
 
 urlpatterns = [
+    path('', include("apps.index.urls")),
     path('powernetwork/', include("apps.powernetwork.urls")),
 
     # rest_framework_simplejw
