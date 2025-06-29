@@ -39,6 +39,8 @@ ALLOWED_HOSTS = []
 # 加载每个应用的 apps.py 中的 AppConfig 类，执行应用的初始化代码（在 AppConfig.ready() 方法中）
 # 自动发现应用的 admin.py 文件，将模型注册到 Django 管理后台
 INSTALLED_APPS = [
+    "simpleui",  # Django 后台美化插件 SimpleUI
+
     'django.contrib.admin',  # 管理界面
     'django.contrib.auth',  # 用户认证系统
     'django.contrib.contenttypes',  # 内容类型框架
@@ -66,8 +68,8 @@ INSTALLED_APPS = [
 
 # Django 的 admin 和普通视图使用 Session 认证，过期时间设置
 SESSION_COOKIE_AGE = 60 * 60 * 12  # # 设置 Session 过期时间（默认 2 周）
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # # 浏览器关闭时 Session 过期（默认为 False）
-SESSION_SAVE_EVERY_REQUEST = False  # # 每次请求更新 Session 过期时间（默认为 False）
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # 浏览器关闭时 Session 过期（默认为 False）
+SESSION_SAVE_EVERY_REQUEST = False  # 每次请求更新 Session 过期时间（默认为 False）
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

@@ -1,6 +1,7 @@
 django
 django-filter
 django-extensions
+django-simpleui
 
 django-ninja
 django-ninja-extra

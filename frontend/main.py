@@ -66,6 +66,8 @@ def select_menu(item):
 
 select_menu(menu_items[0])
 
+# todo: 页面加载完的一瞬间，立刻发出一个权限探测请求，用于检测用户权限，并返回结果
+
 # todo: 了解 Tailwind CSS 类，比如：w-full: 宽度为父容器的 100%，h-11/12: 高度为父容器的 11/12 (约 91.67%)
 
 # [note] 收获：ai 编程 + nicegui 可以很快做出不错的静态页面，但是微调有点复杂，可能前端就是如此？
