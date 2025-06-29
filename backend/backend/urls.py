@@ -17,43 +17,41 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
-from rest_framework.authtoken import views
+from django.contrib.auth import views as auth_views
 from rest_framework.documentation import include_docs_urls
+from rest_framework.authtoken import views
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 
 urlpatterns = [
-    # todo: [to be confirmed] 确定正式环境是否需要，以及数据库也应该需要隔离
-    # django 后台面板，app 下的 admin.py 的目的就是这个，用于管理后台
-    path('admin/', admin.site.urls),
-
-    # todo: [to be confirmed] 确认一下为什么生产环境无法使用
-    # DRF 的可浏览 API 认证
-    # 用于测试和开发环境，生产环境应使用更安全的认证方式(Token, JWT等)
-    # api-auth/ 可以自由修改。登录视图：api-auth/login/，注销视图：api-auth/logout/
-    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-
-    # DRF 自带的 token 认证
-    # 获取 token 的接口
-    path('api-token-auth/', views.obtain_auth_token),
-
-    # apps.powernetwork
     path('powernetwork/', include("apps.powernetwork.urls")),
 
-    # apps.index
-    # todo: 生成一个欢迎页面 protocol://domain:port
+    # rest_framework_simplejw
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),  # 获取 Token 对
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # 刷新 Access Token
+
+    # apps.index：生成一个欢迎页面 protocol://domain:port
+
+    # 基于 session 的认证，适用于前后端不分离的项目，目前先用这个实现登录页面
+    # 但是目前认为，未来这边肯定需要增加逻辑用来支持生成 token
+    path('api-session-auth/', include('rest_framework.urls', namespace='rest_framework')),  # DRF 的可浏览 API 认证
+
+    # path('api-token-auth/', views.obtain_auth_token),  # DRF 自带的 token 认证
+    path('api-docs/', include_docs_urls(title='DRF API 文档', description='无')),  # DRF 自带的文档
+
+    path('admin/', admin.site.urls),  # django 后台面板，app 下的 admin.py 的目的就是这个，用于管理后台
 ]
 
 if settings.CUSTOM_DEBUG:
     from apps.ninjaapi.routers import api as ninjaapi_api
 
     urlpatterns += [
-        path('testdrfapi/', include("apps.testdrfapi.urls")),
+        path('debug/testdrfapi/', include("apps.testdrfapi.urls")),
 
-        path('account/', include("apps.account.urls")),
+        path('debug/testaccount/', include("apps.testaccount.urls")),
 
-        # DRF 自带的文档
-        path(r'drfapi/docs/', include_docs_urls(title='DRF API 文档', description='无')),
-
-        # django-ninja, my exercises
-        # todo: use urls.py
-        path('api/', ninjaapi_api.urls),
+        # [to be deleted]
+        path('debug/api/', ninjaapi_api.urls),
     ]

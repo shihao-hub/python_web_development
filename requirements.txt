@@ -1,15 +1,16 @@
 django
-
-djangorestframework
 django-filter
-markdown
-djangorestframework-simplejwt
-coreapi
-
 django-extensions
 
 django-ninja
 django-ninja-extra
+
+djangorestframework
+djangorestframework-simplejwt
+django-cors-headers
+
+coreapi
+markdown
 orjson
 
 pydantic

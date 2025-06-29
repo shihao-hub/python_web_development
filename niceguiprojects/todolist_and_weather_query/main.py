@@ -52,4 +52,4 @@ with ui.footer().classes('bg-blue-500 dark:bg-gray-800 p-4 text-center'):
         ui.timer(1.0, update_current_time)
 
 # 启动应用
-ui.run(title=TITLE, host="localhost", port=13001, favicon='🌤️', dark=False, show=False, reload=False)
+ui.run(title=TITLE, host="localhost", port=13002, favicon='🌤️', dark=False, show=False, reload=False)

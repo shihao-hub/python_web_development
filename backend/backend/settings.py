@@ -10,16 +10,15 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
+from datetime import timedelta
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-# 项目根目录
-ROOT_DIR = BASE_DIR.parent
-# 源代码所在目录
-SOURCE_DIR = BASE_DIR
-# 资源文件所在目录
-RESOURCES_DIR = ROOT_DIR / "resources"
+
+ROOT_DIR = BASE_DIR.parent  # 项目根目录
+SOURCE_DIR = BASE_DIR  # 源代码所在目录
+RESOURCES_DIR = ROOT_DIR / "resources"  # 资源文件所在目录
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -40,70 +39,34 @@ ALLOWED_HOSTS = []
 # 加载每个应用的 apps.py 中的 AppConfig 类，执行应用的初始化代码（在 AppConfig.ready() 方法中）
 # 自动发现应用的 admin.py 文件，将模型注册到 Django 管理后台
 INSTALLED_APPS = [
-    # 管理界面、用户认证系统内容类型框架（通用关系）、会话管理、一次性消息框架、静态文件管理
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
+    'django.contrib.admin',  # 管理界面
+    'django.contrib.auth',  # 用户认证系统
+    'django.contrib.contenttypes',  # 内容类型框架
+    'django.contrib.sessions',  # 会话管理
+    'django.contrib.messages',  # 一次性消息框架
+    'django.contrib.staticfiles',  # 静态文件管理
 
-    # 用于开发 RESTful API
-    "rest_framework",
-    # DRF 自带的 Token 认证
-    "rest_framework.authtoken",
-
+    "rest_framework",  # 用于开发 RESTful API
+    "rest_framework.authtoken",  # DRF 自带的 Token 认证
     "rest_framework_simplejwt",
-    "ninja_extra",
+    "rest_framework_simplejwt.token_blacklist",
+    "corsheaders",
 
     "django_extensions",
 
-    "apps.testdjangoapi",
-    "apps.testdrfapi",
+    "ninja_extra",
+
     "apps.ninjaapi",
     "apps.powernetwork",
     "apps.powernetworkreport",
-    "apps.account",
+    "apps.testaccount",
+    "apps.testdrfapi",
 ]
 
-# drf 配置字典
-REST_FRAMEWORK = {
-    # 自带分页类
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    # 每页数据量
-    'PAGE_SIZE': 50,
-    # 时间显示格式
-    'DATETIME_FORMAT': '%Y-%m-%d %H:%M:%S',
-    # 返回response对象所用的类
-    'DEFAULT_RENDER_CLASSES': [
-        'rest_framework.renders.JSONRenderer',
-        'rest_framework.renders.BrowsableAPIRenderer',
-    ],
-    # 解析器，如何解析request请求中的request.data
-    'DEFAULT_PARSER_CLASSES': [
-        'rest_framework.parsers.JSONParser',
-        'rest_framework.parsers.FormParser',
-        'rest_framework.parsers.MultiPartParser',
-    ],
-    # 权限相关配置：必须登录才能调用接口
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-        # Use Django's standard `django.contrib.auth` permissions,
-        # or allow read-only access for unauthenticated users.
-        # 'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
-    ],
-    # 认证相关配置
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.BasicAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
-        # [command] python manage.py drf_create_token {username} 可以手动生成 Token
-        'rest_framework.authentication.TokenAuthentication',
-    ],
-    # todo: [to be understood] URL_FIELD_NAME
-    # "URL_FIELD_NAME": 'link',
-    # DRF 接口文档生成
-    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
-}
+# Django 的 admin 和普通视图使用 Session 认证，过期时间设置
+SESSION_COOKIE_AGE = 60 * 60 * 12  # # 设置 Session 过期时间（默认 2 周）
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # # 浏览器关闭时 Session 过期（默认为 False）
+SESSION_SAVE_EVERY_REQUEST = False  # # 每次请求更新 Session 过期时间（默认为 False）
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -114,9 +77,82 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
-    # 设置国际化中间件
-    "django.middleware.locale.LocaleMiddleware",
+    "django.middleware.locale.LocaleMiddleware",  # 设置国际化中间件
+
+    "middleware.LoginRedirectMiddleware",
 ]
+
+ROOT_URLCONF = 'backend.urls'
+
+# 模板配置
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / "templates"],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'backend.wsgi.application'
+
+# Database
+# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+
+# Password validation
+# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
+
+# 密码验证
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 8,  # 最小长度
+        }
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+# Internationalization
+# https://docs.djangoproject.com/en/5.2/topics/i18n/
+
+LANGUAGE_CODE = 'en-us'
+
+TIME_ZONE = 'UTC'
+
+USE_I18N = True
+
+USE_TZ = True
+
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/5.2/howto/static-files/
+
+
+# Default primary key field type
+# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # todo: 创建 logs 文件夹
@@ -174,10 +210,8 @@ LOGGING = {
         'file': {
             'level': 'ERROR',
             'class': 'logging.handlers.RotatingFileHandler',
-            # 目录不会自动创建
-            'filename': 'logs/django_errors.log',
-            # 5 MB
-            'maxBytes': 1024 * 1024 * 5,
+            'filename': 'logs/django_errors.log',  # 目录不会自动创建
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
             'backupCount': 5,
             'formatter': 'verbose',
         },
@@ -191,8 +225,7 @@ LOGGING = {
             'level': 'ERROR',
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': 'logs/django_errors.json',
-            # 5 MB
-            'maxBytes': 1024 * 1024 * 5,
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
             'backupCount': 5,
             'formatter': 'json',
         },
@@ -218,7 +251,6 @@ LOGGING = {
         }
     }
 }
-
 # todo: [to be sloved] 因为 RESTframework 是有前端文件的，后面使用时会全部放到这个目录
 # STATIC_ROOT = BASE_DIR / "static"
 
@@ -227,73 +259,78 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
 # 配置登录重定向
-LOGIN_REDIRECT_URL = 'testdrfapi/test/test'
-LOGOUT_REDIRECT_URL = 'api-auth/login/'
+# LOGIN_REDIRECT_URL = '/'
+# LOGOUT_REDIRECT_URL = '/api-auth/login/'
 
-ROOT_URLCONF = 'backend.urls'
+LOGIN_REDIRECT_URL = '/'  # 登录成功后重定向的URL
+# 这个被 drf 修改后导致 django admin 登出路由有问题
+LOGOUT_REDIRECT_URL = '/admin/login/'  # 登出后重定向
+# todo: 登录页面的 URL（当使用 login_required 装饰器时）
+LOGIN_URL = '/login/'
 
-# 模板配置
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / "templates"],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        },
-    },
-]
+# drf 配置字典
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 50,
+    'DATETIME_FORMAT': '%Y-%m-%d %H:%M:%S',
+    # 返回 response 对象所用的类
+    'DEFAULT_RENDER_CLASSES': [
+        'rest_framework.renders.JSONRenderer',
+        'rest_framework.renders.BrowsableAPIRenderer',
+    ],
+    # 解析器，如何解析 request 请求中的 request.data
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser',
+    ],
+    # 权限相关配置：必须登录才能调用接口
+    # 此处为全局权限控制，所有 DRF 视图（API 端点）默认要求用户认证（应该是限定了 DRF 视图才会如此）
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
 
-WSGI_APPLICATION = 'backend.wsgi.application'
+        # Use Django's standard `django.contrib.auth` permissions,
+        # or allow read-only access for unauthenticated users.
+        # 'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
+    ],
+    'UNAUTHENTICATED_USER': None,  # 未认证时不设置匿名用户
+    # 认证相关配置
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        # 启用 Session 认证，使用 Django 的会话框架，过期时间由 Django 的会话设置控制。缺点不适合前后端分离架构。
+        # 实践发现，这个控制了 drf 的 api-auth/ 相关登入登出
+        # 而且，django 自带的 admin 与其是共用的，登入登出二者都会受影响
+        # rest_framework.urls 提供的登录视图是 Django admin 登录视图的一个简单包装，注销视图也是基本的。
+        'rest_framework.authentication.SessionAuthentication',
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+        # [command] python manage.py drf_create_token {username} 可以手动生成 Token
+        'rest_framework.authentication.TokenAuthentication',
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+        # DRF 的默认 Token 认证是永不过期的，但可以使用 djangorestframework-simplejwt 库轻松设置 JWT 过期时间
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    # "URL_FIELD_NAME": 'link', # todo: [to be understood] URL_FIELD_NAME
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',  # DRF 接口文档生成
 }
 
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
+# todo: 创建 production_settings.py 和 dev_settings.py
 
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+
+# simple jwt
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60 * 12),  # Access Token 有效期
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),  # Refresh Token 有效期
+    'ROTATE_REFRESH_TOKENS': False,  # 是否允许刷新 Refresh Token
+    'BLACKLIST_AFTER_ROTATION': True,  # 刷新后黑名单旧令牌
+    'ALGORITHM': 'HS256',  # 加密算法
+    'SIGNING_KEY': SECRET_KEY,  # 签名密钥
+    'AUTH_HEADER_TYPES': ('Bearer',),  # 认证头类型
+    'USER_ID_FIELD': 'id',  # 用户 ID 字段
+    'USER_ID_CLAIM': 'user_id',  # 用户 ID 在 JWT 中的声明
+    'UPDATE_LAST_LOGIN': True,  # 更新用户最后登录时间
+}
+
+# todo: [to be understood] CORS 配置
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8888",
+    "http://127.0.0.1:8888",
 ]
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
-USE_I18N = True
-
-USE_TZ = True
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

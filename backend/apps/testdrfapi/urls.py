@@ -13,7 +13,7 @@ from .views import (
 router = routers.DefaultRouter()
 router.register(r'users', UserModelViewSet)
 router.register(r'groups', GroupModelViewSet)
-router.register(r'test', TestViewSet, basename='test')
+# router.register(r'test', TestViewSet, basename='test')
 router.register(r'viewset', CourseViewSet, basename='viewset')
 
 urlpatterns = [

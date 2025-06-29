@@ -18,6 +18,7 @@ from .serializers import GroupSerializer, UserSerializer, CourseSerializer
 from .models import Course
 
 
+# fixme: 不要使用 django api
 def jupyternotebooks_test(request: WSGIRequest):
     # todo: 解决 iframe 提示 localhost 已拒绝连接这个问题
     return render(request, "jupyternotebooks_test.html", context={})
@@ -29,7 +30,6 @@ class UserModelViewSet(viewsets.ModelViewSet):
     """
     queryset = User.objects.all().order_by('-date_joined')
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
 
 class GroupModelViewSet(viewsets.ModelViewSet):
@@ -38,7 +38,6 @@ class GroupModelViewSet(viewsets.ModelViewSet):
     """
     queryset = Group.objects.all().order_by('name')
     serializer_class = GroupSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
 
 # [example] ViewSet

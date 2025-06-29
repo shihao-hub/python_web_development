@@ -1,8 +1,117 @@
 import datetime
+import sqlite3
+from typing import List, Tuple, Dict, Any, Optional
 
 from loguru import logger
 
 from nicegui import ui
+
+connect = sqlite3.connect("./db.sqlite3")
+
+# sqlite: NULL, INTERGE, REAL, TEXT, BLOB
+connect.execute("""
+CREATE TABLE IF NOT EXISTS todolist (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    text TEXT NOT NULL,
+    completed INTEGER NOT NULL DEFAULT 0,
+    category TEXT NOT NULL,
+    due_date TEXT
+);
+""")
+connect.commit()
+
+
+class TodoDB:
+    """封装数据库操作"""
+    TABLE_NAME = "todolist"
+    COLUMNS = ("id", "text", "completed", "category", "due_date")
+
+    @staticmethod
+    def execute_query(query: str, params: tuple = ()) -> List[tuple]:
+        """执行查询并返回结果"""
+        cursor = connect.cursor()
+        cursor.execute(query, params)
+        return cursor.fetchall()
+
+    @staticmethod
+    def execute_update(query: str, params: tuple = ()):
+        """执行更新操作并提交事务"""
+        cursor = connect.cursor()
+        cursor.execute(query, params)
+        connect.commit()
+
+    @classmethod
+    def get_all_todos(cls) -> List[Dict[str, Any]]:
+        """获取所有待办事项"""
+        results = cls.execute_query(f"SELECT * FROM {cls.TABLE_NAME}")
+        todos = []
+        for row in results:
+            # 进行数据转换
+            todo = dict(zip(cls.COLUMNS, row))
+            todo['completed'] = bool(todo['completed'])
+            todos.append(todo)
+        logger.debug("获取的代办事项的数量：{}", len(todos))
+        return todos
+
+    @classmethod
+    def add_todo(cls, text: str, category: str, due_date: Optional[str] = None) -> int:
+        """添加新待办事项，返回新ID"""
+        cls.execute_update(
+            f"INSERT INTO {cls.TABLE_NAME} (text, category, due_date) VALUES (?, ?, ?)",
+            (text, category, due_date)
+        )
+        # 获取最后插入的ID
+        cursor = connect.cursor()
+        cursor.execute("SELECT last_insert_rowid()")
+        return cursor.fetchone()[0]
+
+    @classmethod
+    def toggle_todo(cls, todo_id: int):
+        """切换待办事项完成状态"""
+        cls.execute_update(
+            f"UPDATE {cls.TABLE_NAME} SET completed = NOT completed WHERE id = ?",
+            (todo_id,)
+        )
+
+    @classmethod
+    def delete_todo(cls, todo_id: int):
+        """删除待办事项"""
+        cls.execute_update(
+            f"DELETE FROM {cls.TABLE_NAME} WHERE id = ?",
+            (todo_id,)
+        )
+
+    @classmethod
+    def update_todo(cls, todo_id: int, text: str, category: str, due_date: Optional[str] = None):
+        """更新待办事项"""
+        cls.execute_update(
+            f"UPDATE {cls.TABLE_NAME} SET text = ?, category = ?, due_date = ? WHERE id = ?",
+            (text, category, due_date, todo_id)
+        )
+
+
+class TodoViewModel:
+    def __init__(self):
+        self.todo_listeners = []
+        self.stats_listeners = []
+
+    def on_todo_change(self, callback):
+        self.todo_listeners.append(callback)
+
+    def on_stats_change(self, callback):
+        self.stats_listeners.append(callback)
+
+    def notify_todos_changed(self):
+        for cb in self.todo_listeners:
+            cb()
+
+    def notify_stats_changed(self):
+        for cb in self.stats_listeners:
+            cb()
+
+
+# 实例化
+view_model = TodoViewModel()
 
 
 # 待办事项管理类
@@ -11,56 +120,55 @@ class TodoApp:
         self.todos = []
         self.categories = ['工作', '个人', '购物', '学习']
         self.filter = '全部'
-        self.load_todos()
+        self.todos = self.load_todos()
 
     def load_todos(self):
-        # 模拟加载一些初始数据
-        self.todos = [
-            {'id': 1, 'text': '学习 NiceGUI', 'completed': True, 'category': '学习', 'due_date': None},
-            {'id': 2, 'text': '购买杂货', 'completed': False, 'category': '购物', 'due_date': None},
-            {'id': 3, 'text': '完成项目报告', 'completed': False, 'category': '工作',
-             'due_date': datetime.date.today().isoformat()},
-        ]
+        """从数据库加载所有待办事项"""
+        logger.debug("从数据库加载待办事项")
+        return TodoDB.get_all_todos()
 
     def add_todo(self, text, category, due_date=None):
         if not text:
             ui.notify('请输入待办事项内容', type='warning')
             return
 
-        new_id = max([t['id'] for t in self.todos], default=0) + 1
-        self.todos.append({
-            'id': new_id,
-            'text': text,
-            'completed': False,
-            'category': category,
-            'due_date': due_date
-        })
-        self.save_todos()
+        TodoDB.add_todo(text, category, due_date)
+        # 重新加载数据
+        self.todos = self.load_todos()
+
         ui.notify(f'已添加: {text}', type='positive')
         # todo: model 触发 view 刷新
-        refresh_todolist_widget.refresh()
-        refresh_statistics_widget.refresh()
+        view_model.notify_todos_changed()
+        view_model.notify_stats_changed()
 
     def toggle_todo(self, todo_id):
+        """切换待办事项完成状态"""
         logger.info("toggle_todo")
-        for todo in self.todos:
-            if todo['id'] == todo_id:
-                todo['completed'] = not todo['completed']
-                break
-        self.save_todos()
-        refresh_todolist_widget.refresh()
-        refresh_statistics_widget.refresh()
+        TodoDB.toggle_todo(todo_id)
+        # 重新加载数据
+        self.todos = self.load_todos()
+
+        view_model.notify_todos_changed()
+        view_model.notify_stats_changed()
 
     def delete_todo(self, todo_id):
-        self.todos = [t for t in self.todos if t['id'] != todo_id]
-        self.save_todos()
-        ui.notify('待办事项已删除', type='info')
-        refresh_todolist_widget.refresh()
-        refresh_statistics_widget.refresh()
+        """删除待办事项"""
+        TodoDB.delete_todo(todo_id)
+        # 重新加载数据
+        self.todos = self.load_todos()
 
-    def save_todos(self):
-        # 在实际应用中，这里会保存到数据库
-        pass
+        ui.notify('待办事项已删除', type='info')
+        view_model.notify_todos_changed()
+        view_model.notify_stats_changed()
+
+    def update_todo(self, todo_id: int, text: str, category: str, due_date: Optional[str] = None):
+        """更新待办事项"""
+        TodoDB.update_todo(todo_id, text, category, due_date)
+        self.todos = self.load_todos()  # 重新加载数据
+
+        ui.notify(f'已更新: {text}', type='positive')
+        view_model.notify_todos_changed()
+        view_model.notify_stats_changed()
 
     def filtered_todos(self):
         if self.filter == '全部':
@@ -120,11 +228,17 @@ def refresh_statistics_widget():
         ui.linear_progress(value=completed / total if total else 0).classes('w-1/3')
 
 
+# 绑定刷新函数
+view_model.on_todo_change(refresh_todolist_widget.refresh)
+view_model.on_stats_change(refresh_statistics_widget.refresh)
+
+
 def todolist_tab_panel(tab):
     # 待办事项面板
     # [note] bg-blue-200 修改了背景颜色，更方便初学者判断元素位置
     # [note] mx-auto max-w-[50%] bg-blue-200 p-4 这个 classes 让我做到了居中显示，css 的原理需要了解啊
-    with ui.tab_panel(tab).classes("mx-auto max-w-[50%] bg-blue-200 p-4") as todo_section:
+    # fixme: 这个 max-w-[50%] 似乎固定了宽度，不同分辨率的情况下，有差异啊。。
+    with ui.tab_panel(tab).classes("mx-auto max-w-[60%] bg-blue-200 p-4") as todo_section:
         # [warning] 这里错了居然没有提示，整个页面出了问题
         # todo_section.id = 'todo-section'
 
