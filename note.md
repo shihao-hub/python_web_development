@@ -137,7 +137,8 @@ uvicorn backend.asgi:application --port 8888
 7. 任何对外接口的参数都要指明类型
 8. 通用的 utils 函数放在指定位置，app 内部使用的，放在内部的 utils 文件夹下。
    app 内部的 package 中使用的，放在 package 内部的 utils 文件夹下。
-9. 
+9. 【待定】除了官方生成的 `__init__.py`，目前我决定：不要创建 Python Package
+10. 
 
 
 ### django-ninja 使用规范

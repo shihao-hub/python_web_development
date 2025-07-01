@@ -26,33 +26,16 @@ from rest_framework_simplejwt.views import (
 )
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
-# region fastapi
-from fastapi import FastAPI
-
-app = FastAPI()
-
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-
-# regionend
-
 urlpatterns = [
-    # index[special case]
+    # index[special case] 需要特殊对待
     path('', include("apps.index.urls")),
-
-    # 不行，sync_to_async can only be applied to sync functions.
-    # 唉！
-    path("fastapi/", app),
 
     path('powernetwork/', include("apps.powernetwork.urls")),
 
     # drf 自带的 token 认证，调用获得 token。前端需要将 token 放在请求头中，key 为 Authorization，value 为 Token <token>
     path('api-token-auth/', views.obtain_auth_token),
 
-    # todo: drf 的这个 session 认证和 django admin 是同一个，假如 admin/ 退出登录，这边的登录也会失效
+    # [note] drf 的这个 session 认证和 django admin 是同一个，假如 admin/ 退出登录，这边的登录也会失效
     # 基于 session 的认证，适用于前后端不分离的项目，目前先用这个实现登录页面，未来这边肯定需要增加逻辑用来支持生成 token
     path('api-session-auth/', include('rest_framework.urls', namespace='rest_framework')),  # DRF 的可浏览 API 认证
 
