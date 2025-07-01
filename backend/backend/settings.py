@@ -39,7 +39,11 @@ ALLOWED_HOSTS = []
 # 加载每个应用的 apps.py 中的 AppConfig 类，执行应用的初始化代码（在 AppConfig.ready() 方法中）
 # 自动发现应用的 admin.py 文件，将模型注册到 Django 管理后台
 INSTALLED_APPS = [
-    "simpleui",  # Django 后台美化插件 SimpleUI
+    # 美化类 app 需要放在最前面
+    "drf_material",  # 基于 Google Material Design 的现代化界面，目前已知的是美化了 drf 的登录页面
+    "simpleui",  # Django Admin界面美化第三方插件，基于 element-ui + vue 开发 -> 国产，但是需要稍微配置一下
+    # "grappelli",  # Django Admin 界面美化第三方插件 -> 一般，有点简单
+    # "colorfield", "admin_interface",  # Django Admin 界面美化第三方插件 -> 没有太大的改变
 
     'django.contrib.admin',  # 管理界面
     'django.contrib.auth',  # 用户认证系统
@@ -48,13 +52,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',  # 一次性消息框架
     'django.contrib.staticfiles',  # 静态文件管理
 
+    "corsheaders",
+    "django_extensions",
+
     "rest_framework",  # 用于开发 RESTful API
     "rest_framework.authtoken",  # DRF 自带的 Token 认证
-    "rest_framework_simplejwt",
-    "rest_framework_simplejwt.token_blacklist",
-    "corsheaders",
-
-    "django_extensions",
+    "rest_framework_simplejwt",  # rest_framework_simplejwt
+    # "rest_framework_simplejwt.token_blacklist",
+    "drf_spectacular",
 
     "ninja_extra",
 
@@ -67,11 +72,13 @@ INSTALLED_APPS = [
 ]
 
 # Django 的 admin 和普通视图使用 Session 认证，过期时间设置
-SESSION_COOKIE_AGE = 60 * 60 * 12  # # 设置 Session 过期时间（默认 2 周）
+SESSION_COOKIE_AGE = 60 * 15 * 1  # # 设置 Session 过期时间（django 默认 是 1209600 秒，即 14 天）
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # 浏览器关闭时 Session 过期（默认为 False）
 SESSION_SAVE_EVERY_REQUEST = False  # 每次请求更新 Session 过期时间（默认为 False）
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # 跨域请求中间件，必须放在最前
+
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -272,6 +279,9 @@ LOGOUT_REDIRECT_URL = '/admin/login/'  # 登出后重定向
 # todo: 登录页面的 URL（当使用 login_required 装饰器时）
 LOGIN_URL = '/login/'
 
+# todo: 创建 production_settings.py 和 dev_settings.py
+
+# ------------------------------------drf------------------------------------ #
 # drf 配置字典
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
@@ -313,13 +323,10 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     # "URL_FIELD_NAME": 'link', # todo: [to be understood] URL_FIELD_NAME
-    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',  # DRF 接口文档生成
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',  # DRF 接口文档生成
 }
 
-# todo: 创建 production_settings.py 和 dev_settings.py
-
-
-# simple jwt
+# ------------------------------------rest_framework_simplejwt------------------------------------ #
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60 * 12),  # Access Token 有效期
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),  # Refresh Token 有效期
@@ -333,8 +340,76 @@ SIMPLE_JWT = {
     'UPDATE_LAST_LOGIN': True,  # 更新用户最后登录时间
 }
 
-# todo: [to be understood] CORS 配置
+# ------------------------------------corsheaders------------------------------------ #
+# [question] 对于前后端分离项目，后端似乎没必要设置 跨域资源共享 (CORS) 吧？
+# [answer] 浏览器发送带有 Origin 头的请求，服务器响应包含 Access-Control-Allow-Origin 头，故后端也需要！
+
+# 生产环境推荐指定域名白名单（代替 ALLOW_ALL）
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8888",
-    "http://127.0.0.1:8888",
+    "http://localhost:12000",
 ]
+
+# CORS_ALLOW_ALL_ORIGINS = True  # 开发环境，生产环境绝对不要设为 True
+
+# 效果：响应中添加头 Access-Control-Allow-Credentials: true
+# 用途：跨域请求中允许携带 Cookies（包括 Session 认证）、Authorization 认证头、TLS 客户端证书
+CORS_ALLOW_CREDENTIALS = True  # 允许携带 Cookie
+
+CORS_EXPOSE_HEADERS = ["Set-Cookie"]  # 暴露 Set-Cookie 头
+
+# ------------------------------------drf-spectacular------------------------------------ #
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'DRF OpenAPI Document',
+    'DESCRIPTION': '无',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+
+    # 修复认证问题（ai 生成的，不知道什么意思）
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SCHEMA_PATH_PREFIX': r'/api/v[0-9]',
+
+    # 配置全局认证方案（用于Swagger UI）
+    # 'DEFAULT_AUTHENTICATION_CLASSES': [
+    #     'rest_framework.authentication.SessionAuthentication',
+    #     'rest_framework.authentication.TokenAuthentication',
+    #     'rest_framework_simplejwt.authentication.JWTAuthentication',
+    # ],
+
+    # 设置全局认证方案
+    # 'AUTHENTICATION_SCHEMES': {
+    #     'SessionAuthentication': 'rest_framework.authentication.SessionAuthentication',
+    #     'TokenAuthentication': 'rest_framework.authentication.TokenAuthentication',
+    # },
+
+    # 自定义 UI 主题（但是我没发现区别）
+    # 'SWAGGER_UI_SETTINGS': {
+    #     'deepLinking': True,
+    #     'persistAuthorization': True,
+    #     'displayOperationId': True,
+    # },
+    # 'REDOC_UI_SETTINGS': {
+    #     'scrollYOffset': 50,
+    #     'hideLoading': True,
+    # },
+}
+
+# ------------------------------------simpleui------------------------------------ #
+# 去掉默认 Logo 或换成自己 Logo 链接
+# SIMPLEUI_LOGO = 'https://th.bing.com/th/id/R2411a2b340731d67dfa0d84503e915e3?rik=zmYce%2fLys72JVQ&pid=ImgRaw'
+
+# 隐藏右侧 SimpleUI 广告链接和使用分析
+SIMPLEUI_HOME_INFO = False
+SIMPLEUI_ANALYSIS = False
+
+# 设置默认主题，指向主题 css 文件名
+# Admin Lte 风格 - admin.lte.css，Element-ui 风格 - element.css，layui 风格 - layui.css，Purple 风格 - purple.css ...
+# SIMPLEUI_DEFAULT_THEME = 'purple.css'
+
+# 自定义菜单
+# 左侧可折叠菜单是 Simple UI 系统默认菜单
+# 在大多数情况下，Simple UI 系统默认菜单不能满足需求，这时你就需要自定义菜单了，比如添加新的选项或给菜单选项分配新的图标
+# SIMPLEUI_CONFIG = {}
+
+# 还有进一步的内容，可以参见链接内容：https://pythondjango.cn/django/applications/4-django-simple-ui-configuration/
+# 主要指：SimpleUI 默认首页可以利用 iframe 标签，我们指向自定义页面，实现自定义首页
