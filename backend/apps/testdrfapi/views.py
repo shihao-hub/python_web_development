@@ -52,6 +52,7 @@ class CourseViewSet(viewsets.ViewSet):
     # 此处不兼容 <int:pk> 格式
     @decorators.action(detail=False, methods=["post"], url_path=r"get_and_delete/(?P<pk>\d+)")
     def get_and_delete(self, request: Request, pk: int):
+        """ 获得并删除 """
         logger.info("get_and_delete")
         logger.info("pk: {}", pk)
         logger.info("request: {}", request)
