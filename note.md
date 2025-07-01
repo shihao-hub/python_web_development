@@ -113,6 +113,11 @@ ModelViewSet 才能利用 DefaultRouter 的自动文档生成/获得 DRF 的浏�
 ### Django Ninja
 主要目的是练习异步编程 + 只提供 API 接口，不涉及前端
 
+### uvicorn
+```bash
+uvicorn backend.asgi:application --port 8888
+```
+上述命令可以启动服务，但是要求执行的时候，需要进入 backend 目录下执行才行！
 
 ## 编程规格
 此处为本项目严格遵循的个人要求的编程规格说明

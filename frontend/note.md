@@ -1,9 +1,46 @@
+## NiceGUI
+### 组件大全
+- ui.switch：开关
+- ui.lable：显示一些文本
+```python
+# 重写 _handle_text_change 方法，根据标签的内容来更新其其他属性
 
+from nicegui import ui
+
+
+class status_label(ui.label):
+    def _handle_text_change(self, text: str) -> None:
+        super()._handle_text_change(text)
+        if text == 'ok':
+            self.classes(replace='text-positive')
+        else:
+            self.classes(replace='text-negative')
+
+
+model = {'status': 'error'}
+status_label().bind_text_from(model, 'status')
+ui.switch(on_change=lambda e: model.update(status='ok' if e.value else 'error'))
+
+ui.run()
+```
+- ui.link: 创建超链接
+...（详情参见：https://visionz.readthedocs.io/zh-cn/latest/ext/nicegui/index.html 自己记笔记不如多看笔记）
+
+### Others
 
 
 
 
 ## Undefined Notes
+
+
+---
+
+nicegui 有 move 功能，可以将组件移动到其他组件里。这个能实现拖拽功能吗？
+
+
+---
+
 只在 apps 存放 fastapi 相关内容（nicegui 本就依赖于 fastapi），
 除此以外，外面的目录涉及代码的，理当只和 nicegui 有关， 尽力减少与 fastapi 的关联。
 

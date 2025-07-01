@@ -26,9 +26,26 @@ from rest_framework_simplejwt.views import (
 )
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
+# region fastapi
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+
+
+# regionend
+
 urlpatterns = [
     # index[special case]
     path('', include("apps.index.urls")),
+
+    # 不行，sync_to_async can only be applied to sync functions.
+    # 唉！
+    path("fastapi/", app),
 
     path('powernetwork/', include("apps.powernetwork.urls")),
 

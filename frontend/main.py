@@ -4,7 +4,7 @@ from typing import Optional
 import requests
 from loguru import logger
 
-from nicegui import ui
+from nicegui import ui, app
 from nicegui.element import Element
 
 
@@ -571,6 +571,24 @@ async def main():
     await select_menu(menu_items[0])
 
 
-if __name__ == '__main__':
+def mount_django():
+    import os
+    from django.core.wsgi import get_wsgi_application
+    from fastapi.middleware.wsgi import WSGIMiddleware
+
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')  # 配置 Django 环境
+    django_app = get_wsgi_application()  # 获取 Django WSGI/ASGI 应用
+    app.mount("/django", WSGIMiddleware(django_app))
+
+
+mount_django()
+
+
+def run():
+    logger.info("startup file path: {}", __file__)
     # 实际上启动了 FastAPI 服务器
     ui.run(title="柔性配电评估系统", host="localhost", port=12000, reload=False, show=False, favicon="🚀")
+
+
+if __name__ == '__main__':
+    run()

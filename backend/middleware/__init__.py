@@ -28,7 +28,12 @@ class LoginRedirectMiddleware:
         # 无法复用 django 自带的登录页面，可能需要自己实现一份了。除非我不需要提供 admin/ 给甲方。
 
         # 如果响应是 401 Unauthorized/403 Forbidden，则重定向到登录页
-        logger.info("response.status_code: {}", response.status_code)
+        # logger.info("response.status_code: {}", response.status_code)
+
+        # nicegui app amount django_app，为什么 django 的请求日志消失了？
+        if response.status_code == 404:
+            logger.info("{} {}", request.path, response.status_code)
+
         if response.status_code in [401, 403]:
             login_url = reverse('rest_framework:login')
             redirect_url = f"{login_url}?next={request.path}"

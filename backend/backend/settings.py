@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     # 美化类 app 需要放在最前面
     "drf_material",  # 基于 Google Material Design 的现代化界面，目前已知的是美化了 drf 的登录页面
     "simpleui",  # Django Admin界面美化第三方插件，基于 element-ui + vue 开发 -> 国产，但是需要稍微配置一下
+
     # "grappelli",  # Django Admin 界面美化第三方插件 -> 一般，有点简单
     # "colorfield", "admin_interface",  # Django Admin 界面美化第三方插件 -> 没有太大的改变
 
@@ -229,7 +230,7 @@ LOGGING = {
         'file': {
             'level': 'ERROR',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'logs/django_errors.log',  # 目录不会自动创建
+            'filename': ROOT_DIR / 'logs/django_errors.log',  # 目录不会自动创建
             'maxBytes': 1024 * 1024 * 5,  # 5 MB
             'backupCount': 5,
             'formatter': 'verbose',
@@ -243,7 +244,7 @@ LOGGING = {
         'json_file': {
             'level': 'ERROR',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'logs/django_errors.json',
+            'filename': ROOT_DIR / 'logs/django_errors.json',
             'maxBytes': 1024 * 1024 * 5,  # 5 MB
             'backupCount': 5,
             'formatter': 'json',
