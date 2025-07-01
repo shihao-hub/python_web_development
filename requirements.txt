@@ -3,19 +3,20 @@ django-filter
 django-extensions
 django-simpleui
 django-cors-headers
+whitenoise
 
-markdown
 djangorestframework
 djangorestframework-simplejwt
 drf-spectacular
 drf_material
+markdown
 
+django-ninja
+django-ninja-extra
 bs4
 orjson
 aiohttp
 pydantic
-django-ninja
-django-ninja-extra
 
 python-dotenv
 loguru
@@ -24,6 +25,9 @@ requests
 jupyter
 
 nicegui
+fastapi
+uvicorn
+sqlalchemy
 pytz
 
 
