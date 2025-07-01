@@ -98,8 +98,6 @@ MIDDLEWARE = [
     # whitenoise 中间件，用于提供静态文件服务
     'whitenoise.middleware.WhiteNoiseMiddleware',
 
-    "middleware.LoginRedirectMiddleware",
-    # "middleware.ReverseProxyMiddleware",
 ]
 
 ROOT_URLCONF = 'backend.urls'
