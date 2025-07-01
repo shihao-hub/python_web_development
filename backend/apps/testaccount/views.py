@@ -8,7 +8,7 @@ from .serializers import UserLoginSerializer, UserSerializer
 
 
 class LoginLogoutViewSet(viewsets.ViewSet):
-    permission_classes = [permissions.AllowAny]
+    # permission_classes = [permissions.AllowAny]
 
     @decorators.action(detail=False, methods=['post'])
     def login(self, request):
