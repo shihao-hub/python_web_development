@@ -1,6 +1,7 @@
 __all__ = ["handle_unexpected_exception", "SuccessResponse", "ErrorResponse"]
 
 import functools
+import socket
 from typing import Optional, Union, Dict, List
 
 from loguru import logger
@@ -110,3 +111,13 @@ def handle_unexpected_exception(func):
             return ErrorResponse("Unexpected error occurred")
 
     return wrapper
+
+
+def find_available_port(start_port=8888, max_retry=50):
+    port = start_port
+    while port <= start_port + max_retry:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            if s.connect_ex(('localhost', port)) != 0:
+                return port
+        port += 1
+    raise Exception("No available ports")
