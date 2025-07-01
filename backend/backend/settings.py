@@ -30,7 +30,12 @@ SECRET_KEY = 'django-insecure-ok))2mb#mev0$i$9i9-c9130*r26iveph$$=-927l(uwp9i4(k
 DEBUG = True
 CUSTOM_DEBUG = DEBUG and True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost', '127.0.0.1',  # 允许本地开发（Django DEBUG=False 导致 400 Bad Request 错误）
+]
+
+# 或者允许所有主机（仅限开发环境）
+# ALLOWED_HOSTS = ['*']  # 生产环境不要使用
 
 # Application definition
 
@@ -88,6 +93,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
     "django.middleware.locale.LocaleMiddleware",  # 设置国际化中间件
+
+    # whitenoise 中间件，用于提供静态文件服务
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 
     "middleware.LoginRedirectMiddleware",
     # "middleware.ReverseProxyMiddleware",
@@ -265,9 +273,30 @@ LOGGING = {
 # todo: [to be sloved] 因为 RESTframework 是有前端文件的，后面使用时会全部放到这个目录
 # STATIC_ROOT = BASE_DIR / "static"
 
-# 静态文件配置
-STATIC_URL = 'static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+# 设置 django 静态文件 URL 前缀，形如：{STATIC_URL}/rest_framework/js/bootstrap.min.js
+# 所以，这个并不是决定 django 搜索 static 的方式，只是决定请求的路径？
+STATIC_URL = '/django/static/'
+
+# CDN 集成
+# STATIC_URL = 'https://cdn.example.com/static/'
+
+# 指定额外静态文件目录
+STATICFILES_DIRS = [
+    BASE_DIR / 'static'
+]
+
+# 设置静态文件收集目录（生产环境使用）（WhiteNoise 服务此目录）
+# - Django 项目：各 app 的 static 目录、STATICFILES_DIRS 目录、第三方库的 static 文件
+# - collectstatic 命令：将所有静态文件收集到 -> STATIC_ROOT 指定目录 -> 生产环境静态文件服务
+# - 在开发环境中，Django 会直接从各 app 的 static/ 目录和 STATICFILES_DIRS 提供静态文件。
+# - STATIC_ROOT 在开发模式下不会被使用，这是为生产环境准备的静态文件集中存储位置。
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# 静态文件查找器（默认包含）
+# STATICFILES_FINDERS = [
+#     'django.contrib.staticfiles.finders.FileSystemFinder',
+#     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+# ]
 
 # 配置登录重定向
 # LOGIN_REDIRECT_URL = '/'
@@ -280,6 +309,19 @@ LOGOUT_REDIRECT_URL = '/admin/login/'  # 登出后重定向
 LOGIN_URL = '/login/'
 
 # todo: 创建 production_settings.py 和 dev_settings.py
+
+# ------------------------------------whitenoise------------------------------------ #
+# WhiteNoise 是一个高效的 Python 静态文件服务库
+# 特别适用于 Django、Flask 等 Python Web 框架的生产环境部署。
+# 它使你的应用能够直接服务静态文件，无需依赖 Nginx 或 CDN，大幅简化部署流程。
+
+# todo: 详细了解如何使用 whitenoise 进行正式环境的部署
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# 静态文件压缩
+# WHITENOISE_USE_FINDERS = True  # 开发时直接从 app 提供
+# WHITENOISE_KEEP_ONLY_HASHED_FILES = True  # 保留哈希版本文件（解决性能问题）
 
 # ------------------------------------drf------------------------------------ #
 # drf 配置字典
@@ -346,6 +388,7 @@ SIMPLE_JWT = {
 
 # 生产环境推荐指定域名白名单（代替 ALLOW_ALL）
 CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8887",
     "http://localhost:8888",
     "http://localhost:12000",
 ]
