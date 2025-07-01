@@ -2,29 +2,28 @@ django
 django-filter
 django-extensions
 django-simpleui
+django-cors-headers
 
+markdown
+djangorestframework
+djangorestframework-simplejwt
+drf-spectacular
+drf_material
+
+bs4
+orjson
+aiohttp
+pydantic
 django-ninja
 django-ninja-extra
 
-djangorestframework
-djangorestframework-simplejwt
-django-cors-headers
-
-coreapi
-markdown
-orjson
-
-pydantic
-
 python-dotenv
-
 loguru
-
 requests
-aiohttp
-bs4
+
+jupyter
 
 nicegui
 pytz
 
-jupyter
+
