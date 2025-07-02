@@ -46,3 +46,7 @@ Use a production WSGI or ASGI server instead.
 
 ---
 
+研究 django 的 values 前后的区别，效果不一样。有个效果是 group by，另一个忘了。
+
+---
+
