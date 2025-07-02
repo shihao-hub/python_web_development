@@ -1,4 +1,6 @@
-from nicegui import ui
+from loguru import logger
+
+from nicegui import ui, app
 
 from .panels.dashboard_panel import dashboard_panel
 from .panels.account_tree_panel import account_tree_panel
@@ -21,8 +23,14 @@ menu_items = [
 # todo: 好好深入 nicegui
 # todo: 多阅读框架源代码，多学习吸收优秀的代码
 # todo: 确定 ui.page 和不设置的区别 | 全局变量不同页面是否独立 | 页面间数据传递 | ui.page 做了什么，请深入 vue ...
-@ui.page("/")
+@ui.page("/home")
 def main():
+    # 检查登录状态
+    client_id = ui.context.client.id
+    logger.debug("/home client_id: {}", client_id)
+    if 'username' not in app.storage.user.get(client_id, {}):
+        return ui.navigate.to('/login')
+
     # 创建主布局
     with ui.row().classes('w-full h-screen'):
         # 左侧导航菜单 (1/7宽度)
@@ -61,6 +69,7 @@ def main():
                 ui.label('此区域可用于展示电力系统数据、图表和计算结果').classes('text-center text-gray-600 mt-8')
 
     def select_menu(item):
+        # todo: [to be understood] 注意，此处不是用 tabs 实现的，而是 content_container + clear + refresh 实现的
         selected_menu.text = f'{item["name"]} 功能面板'
         custom_panel.clear()
 

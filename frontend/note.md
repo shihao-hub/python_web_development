@@ -36,6 +36,11 @@ ui.run()
 
 ---
 
+将 https://visionz.readthedocs.io/zh-cn/latest/ext/nicegui/index.html 中的
+所有控件汇总成：代码+图片 和 仅图片，仅图片功能有助于我们了解组件从而进行拼装开发。
+
+---
+
 nicegui 有 move 功能，可以将组件移动到其他组件里。这个能实现拖拽功能吗？
 
 

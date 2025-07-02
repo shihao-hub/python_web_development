@@ -138,7 +138,8 @@ uvicorn backend.asgi:application --port 8888
 8. 通用的 utils 函数放在指定位置，app 内部使用的，放在内部的 utils 文件夹下。
    app 内部的 package 中使用的，放在 package 内部的 utils 文件夹下。
 9. 【待定】除了官方生成的 `__init__.py`，目前我决定：不要创建 Python Package
-10. 
+10. 目录嵌套层级不要过多，正常情况创建一个 x.py 文件，当文件需要拆分的时候，再创建一个 x 目录
+11. 
 
 
 ### django-ninja 使用规范

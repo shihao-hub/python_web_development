@@ -27,4 +27,4 @@ class ToggleColorButton(ui.button):
 if __name__ in {"__main__", "__mp_main__"}:
     ToggleColorButton('Toggle me')
 
-    ui.run()
+    ui.run(host="localhost", port=10086, reload=False, show=False, favicon="🚀")
