@@ -28,6 +28,7 @@ nicegui
 fastapi
 uvicorn
 sqlalchemy
+httpx
 pytz
-
-
+matplotlib
+numpy
