@@ -26,10 +26,10 @@ menu_items = [
 @ui.page("/home")
 def main():
     # 检查登录状态
-    client_id = ui.context.client.id
-    logger.debug("/home client_id: {}", client_id)
-    if 'username' not in app.storage.user.get(client_id, {}):
-        return ui.navigate.to('/login')
+    # client_id = ui.context.client.id
+    # logger.debug("/home client_id: {}", client_id)
+    # if 'username' not in app.storage.user.get(client_id, {}):
+    #     return ui.navigate.to('/login')
 
     # 创建主布局
     with ui.row().classes('w-full h-screen'):
