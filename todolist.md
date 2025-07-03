@@ -50,3 +50,26 @@ Use a production WSGI or ASGI server instead.
 
 ---
 
+PyWebIO 是什么？是否太轻量了导致功能有限？
+
+[click](https://pywebio.readthedocs.io/zh-cn/latest/index.html)
+
+[click](https://blog.csdn.net/qq_40442753/article/details/118426603)
+
+---
+
+[pandapower](https://www.jianshu.com/p/ac610313c40d)
+
+---
+
+[nicegui太香了，跨平台开发和跨平台运行--使用Python+nicegui实现系统布局界面的开发 ](https://www.cnblogs.com/wuhuacong/p/18463875)
+
+---
+
+[基于Python后端构建多种不同的系统终端界面研究](https://www.cnblogs.com/wuhuacong/p/18455704)
+
+---
+
+
+
+
