@@ -58,6 +58,7 @@ if target_file.exists():
 try:
     # 复制文件（保留文件名）
     shutil.copy(SOURCE_PATH / file_name, target_file)
+    # todo: 并将其假如到 git 中
     logger.info(f"复制文件 {file_name} 成功")
 except Exception as e:
     logger.error(f"复制文件 {file_name} 失败，原因：{e}")

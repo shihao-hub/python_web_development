@@ -1,3 +1,5 @@
+from typing import Union, Optional, Literal
+
 from nicegui import ui, native
 
 from nicegui_toolkit.layout_tool import inject_layout_tool
@@ -17,10 +19,10 @@ def index_page():
     ui.navigate.to("/home")
 
 
-def run(port: int = PORT, native_option: bool = False):
+def run(port: int = PORT, native_option: bool = False, on_air: Optional[Union[str, Literal[True]]] = None):
     # 实际上启动了 FastAPI 服务器
     ui.run(title=TITLE, host=HOST, port=port, reload=False, show=False, favicon="🚀", storage_secret=SECRET_KEY,
-           native=native_option)
+           native=native_option,on_air=on_air)
 
 
 if __name__ == '__main__':

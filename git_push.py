@@ -10,7 +10,7 @@ from loguru import logger
 
 
 def git_push_with_retry():
-    max_retries = 10  # 最大重试次数
+    max_retries = 100  # 最大重试次数
     retry_delay = 5  # 每次重试间隔(秒)
 
     for attempt in range(1, max_retries + 1):
