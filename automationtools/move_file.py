@@ -5,14 +5,40 @@
 如有余力，请处理更多的异常情况，并基于清晰的用户提示。
 
 """
-
+import os
 import shutil
 from pathlib import Path
 
 from loguru import logger
 
+
+def get_documents_path() -> Path:
+    """获取当前用户的文档路径（跨平台）"""
+    # Windows 系统
+    if os.name == 'nt':
+        import ctypes
+        from ctypes import wintypes
+
+        # 调用系统 API 获取文档路径
+        buf = ctypes.create_unicode_buffer(wintypes.MAX_PATH)
+        ctypes.windll.shell32.SHGetFolderPathW(0, 5, 0, 0, buf)
+        return Path(buf.value)
+
+    # macOS 和 Linux 系统
+    else:
+        # 尝试获取 XDG_DOCUMENTS_DIR 环境变量
+        xdg_docs = os.environ.get('XDG_DOCUMENTS_DIR')
+        if xdg_docs:
+            return Path(xdg_docs)
+
+        # 回退到主目录下的 Documents 文件夹
+        return Path.home() / 'Documents'
+
+
+host_document_path = get_documents_path()
+
 ROOT_DIR = Path(__file__).resolve().parent.parent
-SOURCE_PATH = Path(r"C:\Users\29580\Documents")
+SOURCE_PATH = Path(host_document_path)
 TARGET_PATH = ROOT_DIR / "docs"
 
 if not TARGET_PATH.exists():
@@ -21,6 +47,8 @@ if not TARGET_PATH.exists():
 files = list(SOURCE_PATH.glob("*.md"))
 files = sorted(files, key=lambda x: x.stat().st_mtime)
 # logger.debug("{}", files)
+if len(files) == 0:
+    raise FileNotFoundError("未找到任何 .md 文件")
 file = files[-1]
 file_name = file.name
 target_file = TARGET_PATH / file_name
