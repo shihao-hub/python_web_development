@@ -18,13 +18,20 @@ orjson
 aiohttp
 pydantic
 
+pyinstaller
+
 python-dotenv
 loguru
+# sh
 requests
 
 jupyter
 
 nicegui
+ex4nicegui
+nicegui_tabulator
+niceguitoolkit
+pywebview
 fastapi
 uvicorn
 sqlalchemy
@@ -32,4 +39,3 @@ httpx
 pytz
 matplotlib
 numpy
-pillow
