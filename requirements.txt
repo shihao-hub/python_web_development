@@ -28,6 +28,7 @@ requests
 jupyter
 
 nicegui
+nicegui-highcharts
 ex4nicegui
 nicegui_tabulator
 niceguitoolkit
@@ -39,3 +40,4 @@ httpx
 pytz
 matplotlib
 numpy
+plotly
