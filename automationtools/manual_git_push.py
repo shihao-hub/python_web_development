@@ -18,6 +18,7 @@
 """
 
 import asyncio
+import json
 import os
 import pprint
 import subprocess
@@ -170,6 +171,7 @@ def create_file_node(node):
 async def copy_file_name(file_path):
     """复制文件名到剪贴板"""
     file_name = os.path.basename(file_path)
+    # fixme: 有问题
     await ui.run_javascript(f'navigator.clipboard.writeText("{file_name}")')
     ui.notify(f'已复制文件名: {file_name}', type='positive')
 
@@ -178,30 +180,29 @@ async def copy_file_content(file_path):
     """复制文件内容到剪贴板"""
     escaped_content = None
     try:
-        # todo: cache?
         logger.info("filepath: {}", file_path)
+        file_size = os.path.getsize(file_path)
+        if file_size > 1024 * 1024:  # 1MB
+            ui.notify('文件过大，为避免性能问题，不支持复制大于1MB的文件', type='warning')
+            return
+        # todo: cache?
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
 
-        # 处理特殊字符
-        # todo: 弄清楚这是在处理什么？转义？
-        escaped_content = content.replace('"', '\\"').replace('\n', '\\n')
-        logger.info("复制内容的参考内存占据值：{}", sys.getsizeof(escaped_content))
+        # [note] 处理特殊字符（使用JSON序列化确保内容正确转义）！
+        escaped_content = json.dumps(content)
+        # logger.debug("复制内容的参考内存占据值：{}", sys.getsizeof(escaped_content))
         logger.debug("{}", escaped_content)
-        await ui.run_javascript(f'navigator.clipboard.writeText(`{escaped_content}`)')
+        # fixme: 字符拼接有问题
+        await ui.run_javascript(f"""
+            // console.log({escaped_content});
+            // const content = JSON.parse({escaped_content});
+            // console.log(content);
+            navigator.clipboard.writeText({escaped_content});
+        """)
         ui.notify(f'已复制文件内容: {os.path.basename(file_path)}', type='positive')
     except asyncio.TimeoutError as e:
-        ui.notify(f'复制文件内容失败，剪贴板操作超时: {str(e)}，因为复制的内容过大，请手动复制。', type='negative')
-        # todo: 打开 dialog（临时做法）
-        #       注意，无法实现，因为不是主线程
-        #       请问有无信号系统？
-        ui.timer(0, lambda: (
-            logger.debug("markdown_dialog: {}", markdown_dialog),
-            getattr(markdown_dialog, "_manualgitpush_markdown").clear(),
-            getattr(markdown_dialog, "_manualgitpush_markdown").set_content(escaped_content),
-            markdown_dialog.open(),
-        ), once=True)
-
+        ui.notify(f'复制文件内容失败，: {str(e)}，请联系开发人员定位原因。', type='negative')
     except Exception as e:
         ui.notify(f'复制文件内容失败: {str(e)}', type='negative')
 
