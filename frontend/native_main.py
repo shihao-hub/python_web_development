@@ -13,4 +13,5 @@ from main import run
 load_dotenv()
 
 if __name__ == '__main__':
-    run(port=native.find_open_port(), native_option=True, on_air=os.getenv("NICEGUI_TOKEN"))
+    # native.find_open_port()
+    run(port=12000, native_option=True, on_air=os.getenv("NICEGUI_TOKEN"))

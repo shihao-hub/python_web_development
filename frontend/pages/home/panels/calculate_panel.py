@@ -1,73 +1,86 @@
 import random
+from concurrent.futures import ThreadPoolExecutor
+
+from loguru import logger
 
 from nicegui import ui
 
+from frontend.services import fetch_powerflow_data
 
-def calculate_panel(panel, selected_menu):
-    selected_menu.text = '电网潮流计算'
+thread_pool = ThreadPoolExecutor(max_workers=10)
+
+powerflow_data = {}
+
+
+@ui.refreshable
+def create_calculate_panel(panel, selected_menu):
+    # 请求数据
+    global powerflow_data
+    data = powerflow_data
+    voltages = data.get('voltages', [])
+    loading = data.get('loading', [])
+    total_power = data.get('total_power', 0)  # -
+    max_loading = data.get('max_loading', 0)  # -
+    voltage_deviation = data.get('voltage_deviation', 0)  # -
+    network_loss = data.get('network_loss', 0)  # -
+    line_details = data.get('line_details', [])
+
+    # 生成模拟时间序列（假设 24 小时），把总功率等值简单复制以模拟多时刻
+    times = [f"{h}:00" for h in range(24)]
+    p_series = [total_power * (0.8 + 0.2 * ((i % 5) / 5)) for i in range(24)]
+    q_series = [0.1 * p for p in p_series]
+    v_series = [1.0 - 0.01 * ((i % 5) / 5) for i in range(24)]
+
     with panel:
-        # 顶部：标题 + 控件区
-        with ui.row().classes('items-center justify-between mb-4'):
-            ui.label('电网潮流分布').classes('text-lg font-bold')
-            with ui.row().classes('items-center'):
-                ui.select(['牛顿-拉夫逊法', '直流潮流法', '快速潮流法'], value='牛顿-拉夫逊法').classes('w-40')
-                ui.label('收敛精度').classes('ml-2')
-                ui.slider(min=0.001, max=0.01, value=0.001, step=0.001).classes('w-32')
-                ui.button('开始计算', icon='play_arrow').classes('ml-2 bg-blue-500 text-white')
-                ui.button('刷新数据', icon='refresh').classes('ml-2')
+        # 指标卡
+        with ui.row().classes('w-full mb-4'):
+            for label, value in [
+                ('总功率', f"{total_power} MW"),
+                ('最大负载率', f"{max_loading} %"),
+                ('电压偏差', f"{voltage_deviation} %"),
+                ('网损率', f"{network_loss} %")
+            ]:
+                with ui.card().classes('flex-1 text-center mx-2 shadow'):
+                    ui.label(label).classes('text-sm text-gray-600')
+                    ui.label(value).classes('text-2xl font-bold')
 
-        # 随机生成潮流数据
-        hours = [f'{h}:00' for h in range(24)]
-        active_power = [round(random.uniform(600, 1000) + (50 if 6 <= h <= 18 else 0), 2) for h in range(24)]
-        reactive_power = [round(p * random.uniform(0.25, 0.35), 2) for p in active_power]
-        voltage = [round(random.uniform(100, 250), 1) for _ in range(24)]
-
-        # 折线图
+        # 多曲线面积图
         ui.echart({
             'tooltip': {'trigger': 'axis'},
             'legend': {'data': ['有功功率', '无功功率', '电压']},
-            'xAxis': {'type': 'category', 'data': hours},
+            'xAxis': {'type': 'category', 'data': times},
             'yAxis': [
-                {'type': 'value', 'name': '功率 (MW)'},
-                {'type': 'value', 'name': '电压 (V)', 'position': 'right'}
+                {'type': 'value', 'name': '功率(MW)'},
+                {'type': 'value', 'name': '电压(pu)', 'min': 0.9, 'max': 1.1}
             ],
             'series': [
-                {'name': '有功功率', 'type': 'line', 'data': active_power, 'areaStyle': {}},
-                {'name': '无功功率', 'type': 'line', 'data': reactive_power, 'areaStyle': {}},
-                {'name': '电压', 'type': 'line', 'data': voltage, 'yAxisIndex': 1, 'areaStyle': {}}
+                {'name': '有功功率', 'type': 'line', 'data': p_series, 'areaStyle': {}},
+                {'name': '无功功率', 'type': 'line', 'data': q_series, 'areaStyle': {}},
+                {'name': '电压', 'type': 'line', 'yAxisIndex': 1, 'data': v_series, 'smooth': True}
             ]
-        }).classes('w-full h-96')
+        }).classes('w-full h-96 mt-4')
 
-        # 实时监控指标卡片
-        total_power = round(sum(active_power) / len(active_power), 2)
-        max_load = round(random.uniform(85, 95), 2)
-        voltage_deviation = round(random.uniform(1.8, 3.0), 2)
-        network_loss = round(random.uniform(3.5, 5.0), 2)
-        delta_color = lambda v: 'text-green-500' if v >= 0 else 'text-red-500'
-        with ui.row().classes('w-full mt-6'):
-            for label, value, delta in [
-                ('总功率', f'{total_power} MW', round(random.uniform(-2, 2), 2)),
-                ('最大负载率', f'{max_load}%', round(random.uniform(-2, 2), 2)),
-                ('电压偏差', f'{voltage_deviation}%', round(random.uniform(-1, 1), 2)),
-                ('网损率', f'{network_loss}%', round(random.uniform(-1, 1), 2))
-            ]:
-                with ui.card().classes('flex-1 text-center'):
-                    ui.label(label).classes('text-sm text-gray-500')
-                    ui.label(value).classes('text-2xl font-bold my-1')
-                    ui.label(f"{('+' if delta >= 0 else '')}{delta:.2f}%").classes(
-                        f'text-xs {delta_color(delta)}')
+        # 线路负载详情
+        ui.label("线路负载详情").classes("text-base font-bold mt-6 mb-2")
+        for line in line_details:
+            with ui.row().classes("items-center justify-between mb-2"):
+                ui.label(f"{line['name']} ({line['from']}→{line['to']})").classes("w-1/4")
+                ui.label(f"负载率: {line['loading']} %").classes("w-1/4")
+                ui.label(f"功率: {line['power']} MW").classes("w-1/4")
+                ui.label(f"电流: {line['current']} A").classes("w-1/4")
+                ui.linear_progress(value=line['loading'] / 100.0).classes("w-full mt-1")
 
-        # 线路负载列表
-        with ui.card().classes('w-full mt-6'):
-            ui.label('线路负载详情').classes('text-base font-bold mb-4')
-            with ui.column():
-                for i in range(1, 6):
-                    load = round(random.uniform(60, 95), 1)
-                    power = round(random.uniform(10, 15), 2)
-                    current = round(random.uniform(90, 140), 1)
-                    with ui.row().classes('items-center justify-between py-2 border-b'):
-                        ui.label(f'线路{i}-{i + 1} 节点{i} → 节点{i + 1}')
-                        ui.label(f'负载率: {load}%')
-                        ui.label(f'功率: {power} MW')
-                        ui.label(f'电流: {current} A')
-                        ui.linear_progress(value=load / 100).classes('w-32')
+
+def fetch_powerflow_data_and_refresh():
+    global powerflow_data
+    logger.info("开始获取潮流数据")
+    powerflow_data = fetch_powerflow_data()
+    create_calculate_panel.refresh()
+
+
+def calculate_panel(panel, selected_menu):
+    # thread_pool.submit(fetch_powerflow_data_and_refresh)
+    create_calculate_panel(panel, selected_menu)
+    # fixme: 临时解决刷新数据问题
+    # todo: 确定 nicegui 的 ui.refreshable 的原理
+    ui.timer(0.3, lambda: fetch_powerflow_data_and_refresh(), once=True)

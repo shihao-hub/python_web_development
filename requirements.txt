@@ -25,6 +25,10 @@ loguru
 # sh
 requests
 
+pandas
+pandapower
+numba
+
 jupyter
 
 nicegui

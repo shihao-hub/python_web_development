@@ -46,7 +46,7 @@ ALLOWED_HOSTS = [
 INSTALLED_APPS = [
     # 美化类 app 需要放在最前面
     "drf_material",  # 基于 Google Material Design 的现代化界面，目前已知的是美化了 drf 的登录页面
-    "simpleui",  # Django Admin界面美化第三方插件，基于 element-ui + vue 开发 -> 国产，但是需要稍微配置一下
+    # "simpleui",  # Django Admin界面美化第三方插件，基于 element-ui + vue 开发 -> 国产，但是需要稍微配置一下
 
     # "grappelli",  # Django Admin 界面美化第三方插件 -> 一般，有点简单
     # "colorfield", "admin_interface",  # Django Admin 界面美化第三方插件 -> 没有太大的改变
@@ -98,6 +98,7 @@ MIDDLEWARE = [
     # whitenoise 中间件，用于提供静态文件服务
     'whitenoise.middleware.WhiteNoiseMiddleware',
 
+    "middleware.LoginRedirectMiddleware",  # 设置国际化中间件
 ]
 
 ROOT_URLCONF = 'backend.urls'

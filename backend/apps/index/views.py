@@ -24,7 +24,8 @@ class IndexViewSet(viewsets.ViewSet):
         logger.debug("request.COOKIES: {}", request.COOKIES)
         logger.debug("request.session: {}", request.session)
 
-        response = redirect("http://127.0.0.1:12000/", permanent=False)
+        # 重定向到 /home
+        response = redirect("http://127.0.0.1:12000/home", permanent=False)
 
         # 显式设置跨域 Cookie（关键步骤）
         response.set_cookie(

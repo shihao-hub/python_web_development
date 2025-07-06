@@ -4,20 +4,8 @@ from typing import Optional
 
 from nicegui import ui
 
-ui.aggrid({
-    'columnDefs': [
-        {'headerName': 'Name', 'field': 'name'},
-        {'headerName': 'Age', 'field': 'age', 'cellClassRules': {
-            'bg-red-300': 'x < 21',
-            'bg-green-300': 'x >= 21',
-        }},
-    ],
-    'rowData': [
-        {'name': 'Alice', 'age': 18},
-        {'name': 'Bob', 'age': 21},
-        {'name': 'Carol', 'age': 42},
-    ],
-})
+with ui.button('Click me!', on_click=lambda: badge.set_text(int(badge.text) + 1)):
+    badge = ui.badge('0', color='red').props('floating')
 
 # ui.run()
 

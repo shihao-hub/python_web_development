@@ -16,13 +16,15 @@ from pages import home, login  # todo: 确定一下，pages 代码执行怎么�
 # temp
 @ui.page("/")
 def index_page():
+    # 浏览器启动可以使用这个
+    # ui.navigate.to("http://127.0.0.1:8888/")
     ui.navigate.to("/home")
 
 
 def run(port: int = PORT, native_option: bool = False, on_air: Optional[Union[str, Literal[True]]] = None):
     # 实际上启动了 FastAPI 服务器
     ui.run(title=TITLE, host=HOST, port=port, reload=False, show=False, favicon="🚀", storage_secret=SECRET_KEY,
-           native=native_option,on_air=on_air)
+           native=native_option, on_air=on_air)
 
 
 if __name__ == '__main__':
