@@ -22,17 +22,14 @@
 
 """
 import functools
-import random
 from typing import List
 
 from loguru import logger
 
 from nicegui import ui
 
+import settings
 
-class settings:  # noqa: Class names should use CapWords convention
-    """临时充当 settings.py 使用的类"""
-    UPGRADING = False
 
 
 class _component_center_upvalues:  # noqa: Redeclared '{0}' defined above without usage
