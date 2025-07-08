@@ -18,6 +18,7 @@
 """
 
 import asyncio
+import functools
 import json
 import os
 import pprint
@@ -26,6 +27,7 @@ import sys
 from dataclasses import dataclass
 from typing import Literal, List, Tuple
 from pathlib import Path
+from functools import partial
 
 from loguru import logger
 
@@ -52,6 +54,7 @@ def get_git_status() -> List[Tuple]:
     if result.returncode != 0:
         return []
 
+    logger.debug("result.stdout: {}", result.stdout)
     status_lines = result.stdout.split('\n')
     status_map = []
 
@@ -149,7 +152,25 @@ def create_file_node(node):
                 color = 'text-gray-500'
 
             ui.icon(icon).classes(f'{color}').style('min-width: 24px')
-            ui.label(node['label']).classes('font-mono text-sm')
+            # [ok] filename 被双击的时候，弹出 dialog，显示文件内容。
+            filename = ui.label(node['label']).classes('font-mono text-sm')
+            dialog = ui.dialog()
+            with dialog:
+                with ui.card():
+                    filecontent = ui.markdown()
+
+            def handle_dblclick(file_path, event):
+                logger.debug("双击了文件: {}", file_path)
+                logger.debug("event: {}", event)
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                if os.path.basename(file_path).endswith(".py"):
+                    content = f"""```python\n{content}```"""
+                filecontent.set_content(content)
+                dialog.open()
+
+            # [note] 测试发现，partial 确实就是变成一个新函数，前几个参数是你传进去的，视其为 upvalue 即可，后面的参数是原来的
+            filename.on("dblclick", partial(lambda file_path, event: handle_dblclick(file_path, event), node['id']))
 
         # 文件操作按钮
         if node['is_file']:
