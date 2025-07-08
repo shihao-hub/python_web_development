@@ -45,3 +45,5 @@ pytz
 matplotlib
 numpy
 plotly
+pywebview
+# webview
