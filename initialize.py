@@ -222,11 +222,11 @@ def main():
         print_header("步骤 3: Django 数据库迁移")
 
         manage_py = "./backend/manager.py"
-        # todo: 此处打印当前执行的工作目录
+
+        # [ok] 此处打印当前执行的工作目录
         print("当前工作目录（CWD）：", os.path.abspath("./"))
         print(Path(manage_py).resolve())
-        # todo: FileNotFoundError: [Errno 2] No such file or directory: './backend/manager.py'
-        #       这个文件明明存在啊？
+
         if not Path(manage_py).exists():
             print_error(f"{manage_py} 文件不存在，无法执行迁移")
             return False
