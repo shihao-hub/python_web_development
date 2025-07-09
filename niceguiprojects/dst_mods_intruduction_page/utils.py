@@ -1,14 +1,16 @@
 import contextlib
+from pathlib import Path
 
 import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from settings import DATABASE_URL
+from settings import DATABASE_URL, ROOT_DIR
+
+# todo: 确定一下是否需要 __all__ = []，如果不需要，参考第三方库，不对外的如何命名？
 
 # 数据库配置
 Base = declarative_base()
-
 
 # 创建数据库引擎
 is_sqlite = DATABASE_URL.startswith("sqlite")
@@ -35,3 +37,13 @@ def get_db() -> sqlalchemy.orm.session.Session:
         yield db
     finally:
         db.close()
+
+
+def read_static_file(relative_path: str) -> str:
+    """读取 static 文件"""
+    filepath = ROOT_DIR / "static"
+    for part in Path(relative_path).parts:
+        filepath = filepath / part
+    if not filepath.exists():
+        raise FileNotFoundError(f"文件 `{relative_path}` 不存在")
+    return filepath.read_text("utf-8")  # 进行了一层封装
