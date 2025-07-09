@@ -29,11 +29,11 @@ from loguru import logger
 from nicegui import ui
 
 import settings
-
+import utils
 
 
 class _component_center_upvalues:  # noqa: Redeclared '{0}' defined above without usage
-    """临时使用，充当 singleton dict"""
+    """临时使用，充当 singleton dict [tip] 显然可以隐藏细节吧，不管如何实现的？"""
     components: set = set()
 
     @classmethod
@@ -60,75 +60,7 @@ def page_upgrading():
     # 页面样式
     # todo: 确定一下 nicegui 推荐如此自定义样式吗？首先有原有样式冲突的可能，其次开发过于不便等
     # todo: 速速了解 css 基础语法（早忘光了）
-    ui.add_head_html('''
-        <style>
-            .maintenance-card {
-                background: rgba(255, 255, 255, 0.9);
-                border-radius: 16px;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-                padding: 40px;
-                max-width: 700px;
-                width: 90%;
-                text-align: center;
-                position: relative;
-                z-index: 10;
-                backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                transform: translateY(0);
-                transition: transform 0.3s ease;
-            }
-
-            .maintenance-card:hover {
-                transform: translateY(-5px);
-            }
-
-            .construction-icon {
-                font-size: 6rem;
-                color: #ff6b6b;
-                margin-bottom: 20px;
-                animation: pulse 2s infinite;
-            }
-
-            .title {
-                font-size: 3.5rem;
-                font-weight: 800;
-                color: #2c3e50;
-                margin-bottom: 15px;
-                letter-spacing: 1px;
-                text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-            }
-
-            .subtitle {
-                font-size: 1.5rem;
-                color: #34495e;
-                margin-bottom: 30px;
-                line-height: 1.6;
-            }
-
-            .contact {
-                margin-top: 30px;
-                font-size: 1.2rem;
-                color: #7f8c8d;
-                padding: 15px;
-                background: rgba(236, 240, 241, 0.7);
-                border-radius: 10px;
-            }
-            
-            @media (max-width: 768px) {
-                .maintenance-card {
-                    padding: 25px;
-                }
-
-                .title {
-                    font-size: 2.5rem;
-                }
-
-                .subtitle {
-                    font-size: 1.2rem;
-                }
-            }
-        </style>
-    ''')
+    ui.add_css(utils.read_static_file("./upgrading.css"))
 
     MAINTENANCE_INFO = {  # noqa: Variable in function should be lowercase
         "title": "系统维护中",
@@ -172,20 +104,23 @@ def page_index():
     if settings.UPGRADING:
         ui.navigate.to("/upgrading")
 
-    with ui.header():
+    with ui.header().style("background-color: #4cae4f"):
         icon = ui.icon("home")
         title = ui.label("心悦卿兮的饥荒模组合集")
         ui.space()  # todo: 确定是否需要这个，实际应该也可以通过 css 实现
         switch = ui.switch()
 
-    with ui.footer().style("border-color: #000; border-width: 2px; border-style: solid;"):
-        pass
+    # with ui.footer().style("border-color: #000; border-width: 2px; border-style: solid;"):
+    #     pass
+
+    # todo: ui.tabs() 紧挨着 headers，二者背景需要保证一致
 
     # todo: tabs 无法懒加载吧？所以后面还是需要改动（tabs 应该是 <a> List，点击跳转，各个页面的 header 和 footer 相同）
-    with ui.tabs().classes("mx-auto") as nav_tabs:
-        # todo: 设置为从 json 配置文件中获取（mongodb）
-        home_tab = ui.tab("主页")
-        moreitems_tab = ui.tab("更多物品")
+    with ui.element("div").classes("w-full"):
+        with ui.tabs().style("background-color: #4cae4f") as nav_tabs:
+            # todo: 设置为从 json 配置文件中获取（mongodb）
+            home_tab = ui.tab("主页")
+            moreitems_tab = ui.tab("更多物品")
 
     # tab_panels 似乎是跟随 tabs 的？
     with ui.tab_panels(nav_tabs, value=home_tab).classes("mx-auto"):
@@ -196,6 +131,20 @@ def page_index():
                     # todo: 封装成函数/类（注意函数也是类的封装思想罢了）
                     # todo: 实现鼠标放上去的动态浮动效果
                     create_mod_info_card("home", "更多物品", ["联机", "物品"], "新增 80+ 种物品")
+                    create_mod_info_card("home", "宠物增强", ["联机", "宠物"], "修改原版宠物")
+                    create_mod_info_card("home", "宠物增强", ["联机", "宠物"], "修改原版宠物")
+                    create_mod_info_card("home", "宠物增强", ["联机", "宠物"], "修改原版宠物")
+                    create_mod_info_card("home", "宠物增强", ["联机", "宠物"], "修改原版宠物")
+                    create_mod_info_card("home", "宠物增强", ["联机", "宠物"], "修改原版宠物")
+                    create_mod_info_card("home", "宠物增强", ["联机", "宠物"], "修改原版宠物")
+                    create_mod_info_card("home", "宠物增强", ["联机", "宠物"], "修改原版宠物")
+                    create_mod_info_card("home", "宠物增强", ["联机", "宠物"], "修改原版宠物")
+                    create_mod_info_card("home", "宠物增强", ["联机", "宠物"], "修改原版宠物")
+                    create_mod_info_card("home", "宠物增强", ["联机", "宠物"], "修改原版宠物")
+                    create_mod_info_card("home", "宠物增强", ["联机", "宠物"], "修改原版宠物")
+                    create_mod_info_card("home", "宠物增强", ["联机", "宠物"], "修改原版宠物")
+                    create_mod_info_card("home", "宠物增强", ["联机", "宠物"], "修改原版宠物")
+                    create_mod_info_card("home", "宠物增强", ["联机", "宠物"], "修改原版宠物")
                     create_mod_info_card("home", "宠物增强", ["联机", "宠物"], "修改原版宠物")
 
         with ui.tab_panel(moreitems_tab) as moreitems_panel:
