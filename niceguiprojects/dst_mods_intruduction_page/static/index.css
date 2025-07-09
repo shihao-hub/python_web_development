@@ -1,0 +1,57 @@
+.header-bg {
+    background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.nav-bg {
+    background: linear-gradient(135deg, #388e3c 0%, #2e7d32 100%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 0 10%;
+}
+
+.card-hover {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.card-hover:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
+}
+
+.mod-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #ff5722;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.download-btn {
+    background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.download-btn:hover {
+    background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+    transform: scale(1.05);
+}
+
+.tag {
+    display: inline-block;
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    margin-right: 4px;
+    margin-bottom: 4px;
+}
