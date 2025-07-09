@@ -1,11 +1,12 @@
 import contextlib
 from pathlib import Path
 
+import cachetools
 import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from settings import DATABASE_URL, ROOT_DIR
+from settings import DATABASE_URL, ROOT_DIR, STATIC_DIR
 
 # todo: 确定一下是否需要 __all__ = []，如果不需要，参考第三方库，不对外的如何命名？
 
@@ -47,3 +48,10 @@ def read_static_file(relative_path: str) -> str:
     if not filepath.exists():
         raise FileNotFoundError(f"文件 `{relative_path}` 不存在")
     return filepath.read_text("utf-8")  # 进行了一层封装
+
+
+# @cachetools.cached(cachetools.TTLCache(maxsize=20, ttl=60 * 5))
+def read_markdown_file(relative_path: str):
+    """读取 markdown 文件"""
+    markdown_path = STATIC_DIR / "markdown" / Path(relative_path)
+    return markdown_path.read_text("utf-8")

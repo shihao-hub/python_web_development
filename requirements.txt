@@ -47,3 +47,4 @@ numpy
 plotly
 pywebview
 # webview
+cachetools
