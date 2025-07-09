@@ -100,7 +100,7 @@ class View:
             # 类实例化等价于调用方法。所以可以理解为，类是高级一点的函数！
 
             # todo: 暂且如此，这个样式 card 的样式是需要修改的！
-            with self.classes("card-hover").classes("w-72 h-48 relative overflow-hidden"):
+            with self.classes("card-hover").classes("w-96 h-52 relative overflow-hidden"):
                 # 模组标签
                 with ui.row().classes("absolute top-3 left-3"):  # todo: 这个 top-3 left-3，感觉 css 就是需要知道原理...
                     for tag in mod["tags"]:
@@ -136,7 +136,7 @@ class View:
         # timer
         ui.timer(0.1, lambda: self.nav_tabs.set_value(self.tabs["主页"]), once=True)
         # test
-        ui.timer(0.5, lambda: self.nav_tabs.set_value(self.tabs["更新日志"]), once=True)
+        # ui.timer(0.5, lambda: self.nav_tabs.set_value(self.tabs["更新日志"]), once=True)
 
     def on_dark_switch_change(self, e):
         if e.value:
@@ -173,7 +173,8 @@ class View:
     def _create_content(self):
         # with ui.column().classes("w-full max-w-5xl mx-auto py-8 px-4").style("padding-top: 0rem;"):
         with ui.tab_panels(self.nav_tabs).classes("ml-8").style("width: 95%;"):  # todo: 我有点好奇，为什么 tab_panels 默认是向左偏移的？
-            with ui.tab_panel(self.tabs["主页"]):
+            # todo: 解决那边，这边问题又来了，tabs tab 不是好选择啊，感觉他们得都一样
+            with ui.tab_panel(self.tabs["主页"]).classes("ml-8"):
                 def create_home_panel():
                     # 标题
                     # ui.label("饥荒模组合集").classes("text-4xl font-bold text-center my-12 text-gray-800")
