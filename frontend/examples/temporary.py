@@ -1,11 +1,15 @@
-import os
-from typing import Optional
+from nicegui import Tailwind, ui
 
+ui.label('Label A').tailwind.font_weight('extrabold').text_color('blue-600').background_color('orange-200')
+ui.label('Label B').tailwind('drop-shadow', 'font-bold', 'text-green-600')
 
-from nicegui import ui
+red_style = Tailwind().text_color('red-600').font_weight('bold')
+label_c = ui.label('Label C')
+red_style.apply(label_c)
+ui.label('Label D').tailwind(red_style)
 
-with ui.button('Click me!', on_click=lambda: badge.set_text(int(badge.text) + 1)):
-    badge = ui.badge('0', color='red').props('floating')
+ui.button().tailwind()
+
 
 # ui.run()
 
