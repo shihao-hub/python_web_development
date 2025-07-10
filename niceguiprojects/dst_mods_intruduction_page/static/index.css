@@ -91,6 +91,15 @@
 }
 
 
+/* ------------------------------------隐藏滚动条但保留功能------------------------------------ */
+.custom-hide-scrollbar {
+  -ms-overflow-style: none;  /* IE/Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+.custom-hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
 /* ------------------------------------Markdown------------------------------------ */
 /* 目录样式 */
 .toc ul {
