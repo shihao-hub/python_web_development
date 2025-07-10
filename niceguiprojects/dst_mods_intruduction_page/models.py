@@ -35,3 +35,11 @@ class ModItemInfoModel(Base):
         for item in items:
             db.query(cls).filter(cls.name == item["name"]).update(item, synchronize_session=False)
         db.commit()
+
+# todo: 模组的物品信息必须要存在数据库里，大不了每次 git push 的适合预先序列化 sql 文件再一起 push 上去
+#       还需要增加一个后台管理系统，主要用来方便地增加某个模组的物品信息
+#       关于模组信息我选择用 json 文件，这时候需要考虑一下某个解析 json 文件并提供查询等功能的第三方库了！
+#       （技术视野的重要性，技术调研的重要性，ai 提供了便捷的技术调研途径）
+
+# todo: 模组物品介绍信息的数据流：.lua -> python lua -> sqlite.exe -> python -> .md
+#       （这也是数据处理！！！）

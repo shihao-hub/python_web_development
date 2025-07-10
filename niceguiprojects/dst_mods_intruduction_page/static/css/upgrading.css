@@ -1,0 +1,65 @@
+.maintenance-card {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    padding: 40px;
+    max-width: 700px;
+    width: 90%;
+    text-align: center;
+    position: relative;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transform: translateY(0);
+    transition: transform 0.3s ease;
+}
+
+.maintenance-card:hover {
+    transform: translateY(-5px);
+}
+
+.construction-icon {
+    font-size: 6rem;
+    color: #ff6b6b;
+    margin-bottom: 20px;
+    animation: pulse 2s infinite;
+}
+
+.title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: #2c3e50;
+    margin-bottom: 15px;
+    letter-spacing: 1px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.subtitle {
+    font-size: 1.5rem;
+    color: #34495e;
+    margin-bottom: 30px;
+    line-height: 1.6;
+}
+
+.contact {
+    margin-top: 30px;
+    font-size: 1.2rem;
+    color: #7f8c8d;
+    padding: 15px;
+    background: rgba(236, 240, 241, 0.7);
+    border-radius: 10px;
+}
+
+@media (max-width: 768px) {
+    .maintenance-card {
+        padding: 25px;
+    }
+
+    .title {
+        font-size: 2.5rem;
+    }
+
+    .subtitle {
+        font-size: 1.2rem;
+    }
+}

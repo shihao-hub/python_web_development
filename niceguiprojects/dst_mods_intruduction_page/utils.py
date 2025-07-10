@@ -40,6 +40,7 @@ def get_db() -> sqlalchemy.orm.session.Session:
         db.close()
 
 
+# @cachetools.cached(cachetools.TTLCache(maxsize=20, ttl=60 * 5))
 def read_static_file(relative_path: str) -> str:
     """读取 static 文件"""
     filepath = ROOT_DIR / "static"
