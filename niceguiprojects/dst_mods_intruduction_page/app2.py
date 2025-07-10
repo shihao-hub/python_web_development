@@ -2,8 +2,10 @@ import functools
 import os
 import re
 import random
+from abc import abstractmethod, ABC
+from typing_extensions import override
 from pathlib import Path
-from typing import Optional, Literal, Dict, Generator
+from typing import Optional, Literal, Dict, Generator, List
 
 import markdown
 import cachetools
@@ -19,28 +21,47 @@ from settings import STATIC_DIR
 TITLE = "心悦卿兮的饥荒模组合集"
 
 
-class Dao:
+class Dao(ABC):
     """数据层，最接近数据库的层级，与 Model 或者 SQL 打交道"""
 
-    def __init__(self):
+    def __init__(self, model=None):
+        self.model = model
+
+    @abstractmethod
+    def list(self):
         pass
 
-    def list(self):
+    @abstractmethod
+    def get(self):
+        pass
+
+    @abstractmethod
+    def post(self):
+        pass
+
+    @abstractmethod
+    def put(self):
+        pass
+
+    @abstractmethod
+    def delete(self):
+        pass
+
+
+class ModInfoDao:
+    def __init__(self):
+        self.model = None
+
+    def list(self) -> List[Dict]:
+        """获得有序的模组信息列表"""
         return [
             {"id": 1, "name": "更多物品", "description": "新增 80+ 种物品",
              "tags": ["联机", "物品", "辅助"]},
             {"id": 2, "name": "宠物增强", "description": "修改原版宠物",
              "tags": ["联机", "宠物"]},
-
-            {"id": 3, "name": "占位中...", "description": "无",
+            {"id": 3, "name": "复活按钮和传送按钮", "description": "暂无",
              "tags": ["联机"]},
-            {"id": 4, "name": "占位中...", "description": "无",
-             "tags": ["联机"]},
-            {"id": 5, "name": "占位中...", "description": "无",
-             "tags": ["联机"]},
-            {"id": 6, "name": "占位中...", "description": "无",
-             "tags": ["联机"]},
-            {"id": 7, "name": "占位中...", "description": "无",
+            {"id": 4, "name": "便携大箱子", "description": "暂无",
              "tags": ["联机"]},
         ]
 
@@ -49,11 +70,11 @@ class Service:
     """服务层，使用 Dao 层的服务，给上层提供服务"""
 
     def __init__(self):
-        self.dao = Dao()
+        self.mod_info_dao = ModInfoDao()
 
-    def list(self):
-        """模仿 django list 接口"""
-        return self.dao.list()
+    def get_mod_infos(self):
+        """模仿 django list 接口，后面需要改名，目前我认为 Service 和 Dao 不是特别需要"""
+        return self.mod_info_dao.list()
 
 
 # todo: 确定 MVC 架构并简单实践
@@ -63,8 +84,13 @@ class Controller:
     def __init__(self):
         self.service = Service()
 
-    def get_mod_items_info(self, mod_name="更多物品"):
-        return self.service.list()
+    def get_mod_infos(self):
+        """获得各个模组的信息"""
+        return self.service.get_mod_infos()
+
+    def get_mod_item_infos(self, mod_name="更多物品"):
+        """获得指定模组物品的信息"""
+        raise NotImplemented
 
     def get_update_log_mardown_files(self):  # todo:  -> Generator[str] 如何使用？
         """读取指定文件名格式的 markdown 文件，并排序返回内容列表的生成器"""
@@ -198,14 +224,16 @@ class View:
 
                 # 创建导航栏
                 self.tabs: Dict[str, ui.tab] = {}
+                # todo: 需要整个支持水平拖动，为了兼容移动端等
                 with ui.tabs() as self.nav_tabs:
                     self.tabs["主页"] = ui.tab("主页").classes("hover:bg-white/10")
 
-                    # todo: mod info table 应该要添加排序字段，或者可以调整行序，否则前端无法按序生成，且保证每次一样
-                    self.tabs["更多物品"] = ui.tab("更多物品").classes("hover:bg-white/10")
-                    self.tabs["宠物增强"] = ui.tab("宠物增强").classes("hover:bg-white/10")
+                    for modinfo in self.controller.get_mod_infos():
+                        self.tabs[modinfo["name"]] = ui.tab(modinfo["name"]).classes("hover:bg-white/10")
 
                     self.tabs["更新日志"] = ui.tab("更新日志").classes("hover:bg-white/10")
+                    # todo: 主要提供一些作者的联系方式，不建议添加评论区，因为没有审核怎么办？
+                    self.tabs["错误反馈"] = ui.tab("错误反馈").classes("hover:bg-white/10")
 
     def _create_content(self):
         # with ui.column().classes("w-full max-w-5xl mx-auto py-8 px-4").style("padding-top: 0rem;"):
@@ -231,7 +259,7 @@ class View:
                     # todo: 能否做到某一行动态？比如只有第一行和最后一行，最后一行一个的时候居中，两个的时候平衡一下
                     with ui.grid(columns=3).classes("w-full gap-y-8"):
                         # [note] 此处在初始化的时候就获取数据，此处显然可以理解为 django 的 templates 机制
-                        for mod in self.controller.get_mod_items_info():
+                        for mod in self.controller.get_mod_infos():
                             # todo: 需要兼容移动端！
                             card = self.ModInfoCard(mod).classes("justify-self-center")
                             # todo: 确保此处的 name 和 ui.tab 绑定
@@ -282,7 +310,23 @@ class View:
 
                                 ui.separator()
                                 # todo: 推荐美化一下？还是说 markdown 也能支持图片嵌入渲染的能力？
-                                ui.markdown(content)
+                                # 此处的超长 classes 是 ai 生成的，默认的 h1 h2 h3 太大了
+                                ui.markdown(content).classes("""
+                                    prose 
+                                    prose-h1:text-4xl prose-h1:font-bold prose-h1:text-blue-700 prose-h1:mt-8 prose-h1:mb-4
+                                    prose-h2:text-3xl prose-h2:font-semibold prose-h2:text-blue-600 prose-h2:mt-7 prose-h2:mb-3
+                                    prose-h3:text-2xl prose-h3:font-medium prose-h3:text-blue-500 prose-h3:mt-6 prose-h3:mb-2
+                                    prose-h4:text-xl prose-h4:font-medium prose-h4:text-indigo-500 prose-h4:mt-5 prose-h4:mb-2
+                                    prose-h5:text-lg prose-h5:font-normal prose-h5:text-indigo-400 prose-h5:mt-4 prose-h5:mb-1
+                                    prose-h6:text-base prose-h6:font-normal prose-h6:text-indigo-300 prose-h6:mt-3 prose-h6:mb-1
+                                    prose-p:my-3
+                                    prose-ul:my-2
+                                    prose-ol:my-2
+                                    prose-blockquote:border-l-4 prose-blockquote:border-blue-300 prose-blockquote:pl-4 prose-blockquote:py-1 prose-blockquote:bg-blue-50
+                                    prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
+                                    prose-pre:bg-gray-800 prose-pre:text-gray-100
+                                    max-w-none
+                                """)
 
                 create_update_log_panel()
 
@@ -336,7 +380,11 @@ class View:
                     }
                     defualt_title_css = "text-sm pl-8"
 
-                    with ui.row().classes('w-full h-full gap-12'):
+                    # todo: 让左侧和右侧同 header 一样，y 轴滚动的时候依旧跟随（top-*？）
+                    # fixme: row 中的三个元素 flex 的情况下，分辨率变小，右侧很容易到下面去了... 不想这样！
+                    with ui.row().classes("temporary-custom-centered").classes('w-full h-full gap-12'):
+                        # todo: 此处需要变成转移动端后，自动收缩并在左上角显示一个按钮...
+                        #       实在不行，就隐藏左侧和右侧的内容吧！
                         # 左侧标题导航
                         with ui.column().classes("w-1/6 h-full bg-gray-100 p-4 rounded-lg overflow-y-auto"):
                             ui.label("文档目录").classes("text-xl font-bold mb-4")
@@ -345,11 +393,16 @@ class View:
                                     title_css.get(level, defualt_title_css))
 
                         # 中间内容区域
-                        with ui.column().classes("w-3/5 h-full overflow-y-auto"):
-                            ui.markdown(markdown_content).classes("prose max-w-none")
+                        # .classes("custom-hide-scrollbar")
+                        with ui.column().classes("w-3/5 h-full overflow-x-auto"):
+                            # 设置为 flex justify-center items-center h-screen，其中 h-screen 似乎自动添加 overflow-auto？
+                            # fixme: 暂且以这种方式让其居中显示
+                            ui.markdown(markdown_content).classes("prose max-w-none").style("width:100%")
 
                         # 右侧目录
-                        with ui.column().classes("w-1/6 h-full bg-gray-50 p-4 rounded-lg overflow-y-auto"):
+                        # todo: hidden sm:block 这个 @media 媒体模式不知道为什么没什么效果
+                        with ui.column().classes(
+                                "w-1/6 h-full bg-gray-50 p-4 rounded-lg overflow-y-auto"):
                             ui.label("页面导航").classes("text-xl font-bold mb-4")
                             ui.html(toc_html).classes("toc-container")
 
@@ -383,6 +436,11 @@ def page_index():
     #       比如就目前的实现，header 移动端直接面目全非，tabs 还消失了，绷不住。
     # fixme: 速速考虑一下！
     View()
+
+
+@ui.page("/moreitems")
+def page_moreitems():
+    pass
 
 
 @ui.page("/example")
