@@ -5,8 +5,10 @@ import random
 from pathlib import Path
 from typing import Optional, Literal, Dict, Generator
 
+import markdown
 import cachetools
 from loguru import logger
+from markdown.extensions.toc import TocExtension
 
 from nicegui import ui, app
 
@@ -30,16 +32,16 @@ class Dao:
             {"id": 2, "name": "宠物增强", "description": "修改原版宠物",
              "tags": ["联机", "宠物"]},
 
-            {"id": 3, "name": "宠物增强", "description": "修改原版宠物",
-             "tags": ["联机", "宠物"]},
-            {"id": 4, "name": "宠物增强", "description": "修改原版宠物",
-             "tags": ["联机", "宠物"]},
-            {"id": 5, "name": "宠物增强", "description": "修改原版宠物",
-             "tags": ["联机", "宠物"]},
-            {"id": 6, "name": "宠物增强", "description": "修改原版宠物",
-             "tags": ["联机", "宠物"]},
-            {"id": 7, "name": "宠物增强", "description": "修改原版宠物",
-             "tags": ["联机", "宠物"]},
+            {"id": 3, "name": "占位中...", "description": "无",
+             "tags": ["联机"]},
+            {"id": 4, "name": "占位中...", "description": "无",
+             "tags": ["联机"]},
+            {"id": 5, "name": "占位中...", "description": "无",
+             "tags": ["联机"]},
+            {"id": 6, "name": "占位中...", "description": "无",
+             "tags": ["联机"]},
+            {"id": 7, "name": "占位中...", "description": "无",
+             "tags": ["联机"]},
         ]
 
 
@@ -82,7 +84,7 @@ class Controller:
         logger.debug("markdown files: {}", filenames)
         # 由于 filename 是 YYYY-MM-DD-更新日志.md 格式，所以将其从大到小排列即可
         for filename in filenames:
-            yield f"### {filename[:-3]}\n" + utils.read_markdown_file(filename)
+            yield filename, utils.read_markdown_file(filename)
 
 
 class View:
@@ -99,6 +101,20 @@ class View:
 
             # 类实例化等价于调用方法。所以可以理解为，类是高级一点的函数！
 
+            with self.classes("card-hover").classes("w-96 h-52"):
+                with ui.column():
+                    with ui.row().classes("justify-center"):
+                        with ui.grid(columns=1):
+                            ui.space()
+                            ui.image("/static/logo.jpg").classes("custom-mod-image")
+                        with ui.column():
+                            ui.label(mod["name"]).tailwind.text_color("black").font_size("2xl").font_weight("bold")
+                            ui.label(", ".join(mod["tags"])).tailwind.text_color("green-600").font_size(
+                                "xl").font_weight("normal")
+                    with ui.column():
+                        ui.label(mod["description"]).tailwind.text_color("gray-600").font_size("base")
+
+        def version_1_0(self, mod: Dict):
             # todo: 暂且如此，这个样式 card 的样式是需要修改的！
             with self.classes("card-hover").classes("w-96 h-52 relative overflow-hidden"):
                 # 模组标签
@@ -120,23 +136,41 @@ class View:
                     ui.label(mod["name"]).classes("text-xl font-bold text-gray-800")
                     ui.label(mod["description"]).classes("text-gray-600 text-sm mt-2 line-clamp-3")
 
+    class UpdateLogDialog(ui.dialog):
+        """提供给更新日志模块使用的弹窗"""
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            with self, ui.card():
+                self.content_markdown = ui.markdown()
+
     def __init__(self):
         self.controller = Controller()
 
         ui.add_css(utils.read_static_file("./index.css"))
 
-        # 单例定义，避免重复创建
+        # 定义，避免重复创建
         self.dark = ui.dark_mode()
+        self.update_log_dialog = self.UpdateLogDialog()
 
         # 页面结构
         self._create_header()
         self._create_content()
         self._create_footer()
 
-        # timer
+        # 注册 timer
+        self.register_timer()
+
+    def register_timer(self):
+        # todo: 似乎可以被取代？tab active？
         ui.timer(0.1, lambda: self.nav_tabs.set_value(self.tabs["主页"]), once=True)
+
         # test
-        # ui.timer(0.5, lambda: self.nav_tabs.set_value(self.tabs["更新日志"]), once=True)
+        ui.timer(0.5, lambda: self.nav_tabs.set_value(self.tabs["更多物品"]), once=True)
+
+        # todo: 练习一下，加载完弹出一个公告 dialog
+
+        # todo: 需要记住客户端的信息，比如现在在哪个 tab，加载完成后，定位到哪里！至于客户端信息，建议只需要单纯 k:v
 
     def on_dark_switch_change(self, e):
         if e.value:
@@ -147,8 +181,11 @@ class View:
     def _create_header(self):
         # [tip] .tailwind 虽然有提示，但是 with xxx 不能用啊，本来还想着能区别一下，熟悉这个 css 是 tailwind 呢...
         # todo: 能否不用自定义 css 呢？比如 header-bg 自定义就导致没有兼容 ui.dark_mode
+        # [note] 注意，请以追求放大不错位为目标，所以尽量减少绝对值等使用方式
         with ui.header().classes("header-bg").classes("w-full h-28"):
-            with ui.column().classes("w-full gap-y-0 mr-12 ml-12"):
+            # todo: 说实话，想要动态比例，显然应该涉及 css 计算，拿到父容器 width，然后实时计算得到子的...
+            # [note] .style("margin-left: auto;margin-right: auto;max-width: 80rem;") 可以实现居中且放大不出问题...
+            with ui.column().classes("temporary-custom-centered").classes("w-full gap-y-0"):
                 with ui.row().classes("w-full justify-between items-center"):
                     with ui.row():
                         # 左侧内容（距离左侧20%）
@@ -172,13 +209,15 @@ class View:
 
     def _create_content(self):
         # with ui.column().classes("w-full max-w-5xl mx-auto py-8 px-4").style("padding-top: 0rem;"):
-        with ui.tab_panels(self.nav_tabs).classes("ml-8").style("width: 95%;"):  # todo: 我有点好奇，为什么 tab_panels 默认是向左偏移的？
-            # todo: 解决那边，这边问题又来了，tabs tab 不是好选择啊，感觉他们得都一样
-            with ui.tab_panel(self.tabs["主页"]).classes("ml-8"):
+        # .style("width: 95%;") 可以让 tab_panels 与其父模板宽度对齐，但是 tab_panels 涉及所有选项卡了怎么办？
+        with ui.tab_panels(self.nav_tabs).classes("w-full"):
+            # todo: 需要此处的内容左右偏移，这个之后解决吧，找个通用方案就行
+            with ui.tab_panel(self.tabs["主页"]).classes("temporary-custom-centered").classes(
+                    "w-full justify-center items-center"):
                 def create_home_panel():
                     # 标题
                     # ui.label("饥荒模组合集").classes("text-4xl font-bold text-center my-12 text-gray-800")
-                    ui.label("饥荒模组合集").classes("mx-auto text-h4")
+                    ui.label("饥荒模组合集").classes("md:mx-auto text-h4")
 
                     # 【暂不需要】筛选栏
                     # with ui.row().classes("w-full justify-center mb-8 gap-4"):
@@ -190,10 +229,11 @@ class View:
 
                     # 模组网格
                     # todo: 能否做到某一行动态？比如只有第一行和最后一行，最后一行一个的时候居中，两个的时候平衡一下
-                    with ui.grid(columns=3).classes("w-full gap-8"):
+                    with ui.grid(columns=3).classes("w-full gap-y-8"):
                         # [note] 此处在初始化的时候就获取数据，此处显然可以理解为 django 的 templates 机制
                         for mod in self.controller.get_mod_items_info():
-                            card = self.ModInfoCard(mod)
+                            # todo: 需要兼容移动端！
+                            card = self.ModInfoCard(mod).classes("justify-self-center")
                             # todo: 确保此处的 name 和 ui.tab 绑定
                             card.on("click", functools.partial(
                                 lambda mod, e: self.nav_tabs.set_value(self.tabs[mod["name"]]), mod))
@@ -206,7 +246,8 @@ class View:
 
                 create_home_panel()
             # todo: css 的 inherit、initial、unset、revert：https://cloud.tencent.com/developer/article/2312895
-            with ui.tab_panel(self.tabs["更新日志"]).classes("w-full").style("width: 100%;"):
+            # .style("width: 100%;") 让 tab_panel 与 tab_panels 宽度对齐，但是这似乎意味着 tab_panels 也需要修改，我不建议
+            with ui.tab_panel(self.tabs["更新日志"]).classes("w-full"):
                 def create_update_log_panel():
                     with ui.column().classes("w-full gap-y-4"):
                         # todo: tab_panel flex，导致其内部组件的长宽会被根据其内容限定？真的吗？
@@ -216,20 +257,123 @@ class View:
                         #       .nicegui-tab-panel 的 display: flex; 取消掉就行，但是显然有点小问题，得找到一种方式，
                         #       轻微进行覆盖比较好，比如添加 classes, style 尝试覆盖顶层（嗯？行内 style 是不是强一点）
                         #       .style("display: revert !important;")
-                        for content in self.controller.get_update_log_mardown_files():
-                            with ui.card().classes("w-full h-64 overflow-auto"):
+                        for filename, content in self.controller.get_update_log_mardown_files():
+                            # todo: 优化 card 及其内部 markdown
+                            with ui.card().classes("w-full h-80 overflow-auto"):
+                                with ui.row():  # todo: 让其中的元素居于中轴
+                                    # https://quasar.dev/vue-components/spinners#qspinner-api
+                                    ui.spinner("ball", size="lg", color="green")
+
+                                    with ui.column().classes("pt-2"):
+                                        # todo: 点击弹出弹窗展示
+                                        title = ui.label(f"{filename[:-3]}")
+                                        title.tooltip("点击预览")
+                                        title.classes("cursor-pointer hover:text-blue-500")  # hover:underline
+                                        title.tailwind.text_color("black").font_weight("bold").font_size("2xl")
+                                        # click | dblclick
+                                        title.on("click", functools.partial(lambda content: (
+                                            logger.debug("[update-log] title click"),
+                                            self.update_log_dialog.content_markdown.set_content(content),
+                                            self.update_log_dialog.open()
+                                        ), content))
+
+                                    # todo: 如果添加这个，需要将其放在最右侧才行
+                                    # ui.button("Download", on_click=lambda: ui.download(f"/static/markdown/{filename}"))
+
+                                ui.separator()
+                                # todo: 推荐美化一下？还是说 markdown 也能支持图片嵌入渲染的能力？
                                 ui.markdown(content)
 
                 create_update_log_panel()
 
             # todo: 尝试高级表格、第三方库等（分页等...）
+            # todo: 能否集成专门的博客面板？（左侧目录，中间内容，右侧其他）
             with ui.tab_panel(self.tabs["更多物品"]):
-                pass
+                def create_moreitems_panel():
+                    @cachetools.cached(cachetools.TTLCache(maxsize=10, ttl=2))
+                    def read_moreitems_file() -> str:
+                        filepath = STATIC_DIR / "markdown" / "moreitems.md"
+                        return filepath.read_text("utf-8")
 
+                    markdown_content = read_moreitems_file()
+
+                    def extract_titles(md_text: str) -> list:
+                        """提取标题层级结构"""
+                        res = []
+                        for line in md_text.split('\n'):
+                            line = line.strip()
+                            if line.startswith('#'):
+                                logger.debug("line: {}", line)
+                                level = line.count('#', 0, 6)  # 获取标题级别 (1-6)
+                                title_text = line.lstrip('#').strip()
+                                res.append((level, title_text))
+                        logger.debug("extract_titles: {}", res)
+                        return res
+
+                    def generate_toc(md_text: str) -> str:
+                        """生成带锚点的目录 HTML"""
+                        html = markdown.markdown(md_text, extensions=[TocExtension(toc_depth="2-3", anchorlink=True)])
+                        logger.debug("html: {}", html)
+                        toc_match = re.search(r'<div class="toc">(.*?)</div>', html, re.DOTALL)
+                        res = toc_match.group(1) if toc_match else ""
+                        logger.debug("generate_toc: {}", res)
+                        return res
+
+                    # fixme: 处理 Markdown 内容，目前处理的有问题
+                    titles = extract_titles(markdown_content)
+                    toc_html = generate_toc(markdown_content)
+
+                    # todo: title_css 和 defualt_title_css 似乎可以用一个类
+                    title_css = {
+                        0: "text-lg font-bold",
+
+                        1: "text-lg font-bold",
+                        2: "text-md pl-4",
+                        3: "text-sm pl-8",
+
+                        4: "text-sm pl-8",
+                        5: "text-sm pl-8",
+                    }
+                    defualt_title_css = "text-sm pl-8"
+
+                    with ui.row().classes('w-full h-full gap-12'):
+                        # 左侧标题导航
+                        with ui.column().classes("w-1/6 h-full bg-gray-100 p-4 rounded-lg overflow-y-auto"):
+                            ui.label("文档目录").classes("text-xl font-bold mb-4")
+                            for level, title in titles:
+                                ui.link(title, f'#toc-{title.lower().replace(" ", "-")}').classes(
+                                    title_css.get(level, defualt_title_css))
+
+                        # 中间内容区域
+                        with ui.column().classes("w-3/5 h-full overflow-y-auto"):
+                            ui.markdown(markdown_content).classes("prose max-w-none")
+
+                        # 右侧目录
+                        with ui.column().classes("w-1/6 h-full bg-gray-50 p-4 rounded-lg overflow-y-auto"):
+                            ui.label("页面导航").classes("text-xl font-bold mb-4")
+                            ui.html(toc_html).classes("toc-container")
+
+                create_moreitems_panel()
             with ui.tab_panel(self.tabs["宠物增强"]):
-                pass
+                # todo: 添加一个下载 excel 的按钮
+                # ui.button('Logo', on_click=lambda: ui.download('https://nicegui.io/logo.png'))
+                grid = ui.aggrid({
+                    'defaultColDef': {'flex': 1},
+                    'columnDefs': [
+                        {'headerName': 'Name', 'field': 'name'},
+                        {'headerName': 'Age', 'field': 'age'},
+                        {'headerName': 'Parent', 'field': 'parent', 'hide': True},
+                    ],
+                    'rowData': [
+                        {'name': 'Alice', 'age': 18, 'parent': 'David'},
+                        {'name': 'Bob', 'age': 21, 'parent': 'Eve'},
+                        {'name': 'Carol', 'age': 42, 'parent': 'Frank'},
+                    ],
+                    'rowSelection': 'multiple',
+                }).classes('max-h-40')
 
     def _create_footer(self):
+        # todo: 暂且计划是加一个不算明显的 footer，用于记录一些信息，比如点击量，访问量等
         pass
 
 
@@ -239,6 +383,16 @@ def page_index():
     #       比如就目前的实现，header 移动端直接面目全非，tabs 还消失了，绷不住。
     # fixme: 速速考虑一下！
     View()
+
+
+@ui.page("/example")
+def page_example():
+    with ui.label('Mountains...'):
+        with ui.tooltip().classes('bg-transparent'):
+            ui.image('/static/logo.jpg').classes('w-64')
+
+    with ui.element().tooltip('...with a tooltip!'):
+        ui.html('This is <u>HTML</u>...')
 
 
 # 使本地目录在指定的端点可用，这对于向前端提供本地数据（如图像）非常有用
