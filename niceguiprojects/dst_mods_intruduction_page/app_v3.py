@@ -11,6 +11,8 @@ import os
 import re
 import random
 from abc import abstractmethod, ABC
+from datetime import datetime
+
 from typing_extensions import override
 from pathlib import Path
 from typing import Optional, Literal, Dict, Generator, List
@@ -30,6 +32,8 @@ import utils
 from settings import STATIC_DIR
 
 load_dotenv()
+
+# todo: 设置 logger 的 level，与 settings.DEBUG 对齐
 
 TITLE = "心悦卿兮的饥荒模组合集"
 
@@ -139,7 +143,9 @@ class View:
 
                     # 右侧：开关
                     # todo: dark_mode 需要优化，除此以外，在添加一个小眼睛图标，鼠标放上去展示访客量（手机端点击弹窗）
-                    ui.switch(on_change=lambda e: ui.dark_mode(e.value))  # todo: .tooltip()
+                    switch = ui.switch(on_change=lambda e: ui.dark_mode(e.value))  # todo: .tooltip()
+                    if not settings.DEBUG:
+                        switch.classes("hidden")
                 with ui.row().classes("w-full bg-green-500 text-white"):
                     with ui.tabs().classes("w-full") as self.nav_tabs:
                         logger.info("header tab_names: {}", tab_names)
@@ -160,7 +166,7 @@ class View:
             # 类实例化等价于调用方法。所以可以理解为，类是高级一点的函数！
 
             with self.classes("card-hover").classes(
-                    "w-full h-full shadow-lg hover:shadow-xl transition-shadow duration-300"):
+                    "w-2/3 mx-auto h-full shadow-lg hover:shadow-xl transition-shadow duration-300"):
                 with ui.column():
                     with ui.row().classes("justify-center"):
                         with ui.grid(columns=1):
@@ -217,30 +223,62 @@ class View:
     def __init__(self):
         self.controller = Controller()
 
+        # 预声明
+        # todo: 但是这导致每次跳转会跳到这里，而不是初始化的地方，需要解决
+        # todo: 能否在非 __init__ 中定义的属性都警告啊？
+        self.header: Optional[ui.header] = None
+        self.nav_tabs: Optional[ui.tabs] = None
+        self.tabs: Optional[Dict[str, ui.tab]] = None
+        self.nav_tabs_panels: Optional[ui.tab_panels] = None
+
         ui.add_css(utils.read_static_file("./index.css"))
 
         # 定义，避免重复创建
         self.dark = ui.dark_mode()
         self.update_log_dialog = self.UpdateLogDialog()
 
-        # 页面结构
+        # 初始化页面结构
         self._create_header()
         self._create_content()
         self._create_footer()
 
-        # 注册 timer
-        self.register_timer()
+        # 页面初始化后
+        self.current_nav_tab = self.tabs[app.storage.user.get("nav_tabs:tab_name", "主页")]
 
-    def register_timer(self):
-        # todo: 似乎可以被取代？tab active？
-        ui.timer(0.1, lambda: self.nav_tabs.set_value(self.tabs["主页"]), once=True)
+        # 注册定时器
+        self._register_timers()
+
+        # 注册事件
+        self._register_events()
+
+    def _register_timers(self):
+        """统一注册计时器"""
 
         if settings.DEBUG:
-            ui.timer(0.5, lambda: self.nav_tabs.set_value(self.tabs["更多物品"]), once=True)
+            # ui.timer(2, lambda: setattr(self, "current_nav_tab", self.tabs["更多物品"]), once=True)
+            pass
 
         # todo: 练习一下，加载完弹出一个公告 dialog
 
         # todo: 需要记住客户端的信息，比如现在在哪个 tab，加载完成后，定位到哪里！至于客户端信息，建议只需要单纯 k:v
+
+    def _register_events(self):
+        """统一注册事件"""
+
+        def handle_nav_tabs_value_change(args: ValueChangeEventArguments):
+            # 记录用户当前所属 tab 页，用于加载时切换
+
+            tab_name = args.value
+            if isinstance(tab_name, ui.tab):
+                tab_name = args.value._props["name"]  # noqa: Access to a protected member _props of a class
+
+            # logger.debug("{} - {}", args, args.value)
+            # logger.debug("nav_tabs 切换，记录当前 tab name：{}", tab_name)
+            # null, number, string, list, dict
+            app.storage.user["nav_tabs:tab_name"] = tab_name
+
+        # 监听 self.nav_tabs:ui.tabs 值切换
+        self.nav_tabs.on_value_change(handle_nav_tabs_value_change)
 
     def _create_header(self):
         self.header = self.Header([
@@ -250,7 +288,7 @@ class View:
             "错误反馈",
         ])
 
-        # 兼容
+        # 临时兼容
         self.nav_tabs = self.header.nav_tabs
         self.tabs = self.header.tabs
 
@@ -260,7 +298,7 @@ class View:
 
             with ui.grid().classes("w-full gap-y-8 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"):
                 for mod in self.controller.get_mod_infos():
-                    card = self.ModInfoCard(mod).classes("justify-self-center")
+                    card = self.ModInfoCard(mod)
                     card.on("click", functools.partial(
                         lambda mod, e: self.nav_tabs.set_value(self.tabs[mod["name"]]), mod))
 
@@ -320,8 +358,110 @@ class View:
                                     max-w-none
                                 """)
 
+    def _create_error_feedback_panel_v0(self):
+        with ui.tab_panel(self.tabs["错误反馈"]):
+            # todo: 实现一个表单
+            # 表单结构：
+            # 反馈人联系方式
+            # 错误原因
+            # ...
+            with ui.card().classes("mx-auto"):
+                with ui.grid(columns=2):
+                    ui.label("错误原因：")
+                    ui.textarea(placeholder="请输入错误原因")
+
+                    ui.label("你的联系方式：")
+                    ui.input(placeholder="请输入你的联系方式")
+
+                    ui.label("附件上传：")
+                    ui.upload()
+
+                    ui.space()
+                    ui.button("提交").classes("justify-end")
+
+    def _create_error_feedback_panel(self):
+        with ui.tab_panel(self.tabs["错误反馈"]):
+            def submit_form():
+                # 表单验证
+                if not error_scenario.value:
+                    ui.notify("请填写错误场景！", type='negative')
+                    return
+                if not contact.value:
+                    ui.notify("请填写联系方式！", type='negative')
+                    return
+                if not contact.value.strip().isprintable():
+                    ui.notify("联系方式包含非法字符！", type='negative')
+                    return
+                # 处理文件上传
+                file_info = []
+                if upload.files:
+                    for file in upload.files:
+                        file_info.append({
+                            'name': file.name,
+                            'size': f"{len(file.content) / 1024:.1f} KB",
+                            'type': file.type
+                        })
+
+                # 在实际应用中，这里可以添加发送邮件/保存到数据库等操作
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                # 显示提交成功信息
+                with dialog:
+                    ui.label("反馈提交成功！").classes("text-h6 text-green")
+                    ui.label(f"提交时间: {timestamp}")
+                    ui.label(f"错误原因: {error_scenario.value}")
+                    ui.label(f"联系方式: {contact.value}")
+
+                    if file_info:
+                        ui.label("上传附件:")
+                        for info in file_info:
+                            ui.label(f"· {info['name']} ({info['size']}, {info['type']})")
+
+                    ui.button("关闭", on_click=dialog.close).classes("mt-4")
+
+                dialog.open()
+
+            with ui.card().classes("w-full max-w-3xl mx-auto p-8 shadow-lg rounded-lg"):
+                ui.label("错误反馈表单").classes("text-h4 text-primary mb-6 mx-auto")
+
+                # 错误场景 (多行文本)
+                ui.label("错误场景：").classes("text-lg font-medium")
+                error_scenario = ui.textarea(label="请详细描述遇到的问题",
+                                             placeholder="例如：装备某件物品时游戏崩溃...").classes("w-full").props(
+                    "outlined")
+
+                # 联系方式
+                ui.label("联系方式：").classes("text-lg font-medium mt-6")
+                contact = ui.input(label="QQ", placeholder="请输入您的QQ号码").classes("w-full").props("outlined")
+
+                # 文件上传
+                # todo: 关于安全问题，需要检测文件上传上限
+                #       比如：某个指定的目录存放上传的文件，每次上传并存储文件后，将把目录下的 .size 文件更新，
+                #       每次上传也会读取
+                # todo: 需要解决 ui.upload 上传后表单未提交的情况，为此，需要唯一标识啊，或者有无什么解决办法？
+                ui.label("附件上传：").classes("text-lg font-medium mt-6")
+                with ui.column().classes("w-full items-stretch"):
+                    upload = ui.upload(
+                        label="选择文件",
+                        multiple=True,
+                        max_file_size=10 * 1024 * 1024,  # 10MB限制
+                        auto_upload=True,
+                        on_rejected=lambda e: ui.notify(f"文件 {e.name} 超过大小限制 (最大10MB)", type='negative')
+                    ).classes("w-full")
+                    ui.label("支持上传日志文件、截图等 (最多5个文件，每个文件不超过10MB)").classes(
+                        "text-sm text-gray-600 mt-1")
+
+                # 提交按钮
+                with ui.row().classes("w-full justify-end"):
+                    ui.button("提交反馈", on_click=submit_form, icon="send").classes("mt-8 bg-blue-600 text-white")
+
+            # 创建提交结果对话框
+            dialog = ui.dialog().classes("max-w-2xl")
+
     def _create_content(self):
-        with ui.tab_panels(self.nav_tabs).classes("w-full"):
+        with ui.tab_panels(self.nav_tabs).classes("w-full") as self.nav_tabs_panels:
+            self.nav_tabs_panels.bind_value(self, "current_nav_tab")
+
             self._create_home_panel()
             # todo: 左侧目录栏是有必要实现的，右侧可以选择不需要，要不添加一个单纯的活动式菜单栏？点击可以缩小成一个按钮。
             self.MarkdownTabPanel(self.tabs["更多物品"], "./更多物品.md")
@@ -329,6 +469,7 @@ class View:
             self.MarkdownTabPanel(self.tabs["复活按钮和传送按钮"], "./复活按钮和传送按钮.md")
             self.MarkdownTabPanel(self.tabs["便携大箱子"], "./便携大箱子.md")
             self._create_update_log_panel()
+            self._create_error_feedback_panel()
 
     def _create_footer(self):
         # todo: 暂且计划是加一个不算明显的 footer，用于记录一些信息，比如点击量，访问量等
@@ -351,56 +492,142 @@ def page_moreitems():
 @ui.page("/example")
 def page_example():
     from nicegui import ui
+    from datetime import datetime
+    import time
 
-    grid = ui.aggrid({
-        'defaultColDef': {'flex': 1},
-        'columnDefs': [
-            {'headerName': 'Name', 'field': 'name'},
-            {'headerName': 'Age', 'field': 'age'},
-            {'headerName': 'Parent', 'field': 'parent', 'hide': True},
-        ],
-        'rowData': [
-            {'name': 'Alice', 'age': 18, 'parent': 'David'},
-            {'name': 'Bob', 'age': 21, 'parent': 'Eve'},
-            {'name': 'Carol', 'age': 42, 'parent': 'Frank'},
-        ],
-        'rowSelection': 'multiple',
-    }).classes('max-h-40')
+    # 表单提交处理函数
+    def submit_form():
+        # 表单验证
+        if not error_type.value:
+            ui.notify('请选择错误类型!', color='negative')
+            return
+        if not description.value.strip():
+            ui.notify('请填写错误描述!', color='negative')
+            return
+        if not contact.value.strip():
+            ui.notify('请填写联系方式!', color='negative')
+            return
+        if not agree.value:
+            ui.notify('请同意隐私条款!', color='negative')
+            return
 
-    def create_two_line_header():
-        # 创建顶部固定容器
-        with ui.header().classes('flex flex-col p-0 gap-0'):
-            # 第一行
-            with ui.row().classes('items-center justify-between w-full px-4 py-2 bg-blue-800 text-white'):
-                # 左侧：图标和标题
-                with ui.row().classes('items-center gap-4'):
-                    ui.image('https://nicegui.io/logo_square.png').classes('w-8 h-8')
-                    ui.label('应用标题').classes('text-xl font-bold')
+        # 显示提交中状态
+        submit_button.text = '提交中...'
+        submit_button.disable()
 
-                # 右侧：开关
-                ui.switch('深色模式')
+        # 模拟提交过程
+        time.sleep(1.5)
 
-            # 第二行：标签页
-            with ui.row().classes('w-full bg-blue-800 text-white'):
-                tabs = ui.tabs().classes('w-full')
-                with tabs:
-                    for tab_name in [
-                        '首页',
-                        '产品',
-                        '服务',
-                        '关于我们',
-                        '联系我们'
-                    ]:
-                        ui.tab(tab_name)
+        # 显示成功信息
+        ui.notify('反馈提交成功! 感谢您的支持!', color='positive', icon='check_circle')
 
-    # 创建两行标题
-    create_two_line_header()
+        # 重置表单
+        error_type.value = ''
+        description.value = ''
+        contact.value = ''
+        agree.value = False
 
-    # 页面内容区域
-    with ui.column().classes('w-full p-8 gap-4'):
-        ui.label('页面内容区域').classes('text-2xl')
-        ui.button('示例按钮')
-        ui.slider(min=0, max=100, value=50)
+        # 恢复按钮状态
+        submit_button.text = '提交反馈'
+        submit_button.enable()
+
+        # 显示提交时间
+        timestamp.text = f'最后提交时间: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
+
+        # 显示感谢信息
+        with ui.dialog() as dialog, ui.card():
+            ui.label('🎉 感谢您的反馈!').classes('text-2xl font-bold text-green-600')
+            ui.label('我们的技术团队将尽快处理您的问题')
+            ui.label('如需进一步沟通，我们将通过您提供的联系方式与您联系')
+            ui.button('关闭', on_click=dialog.close).props('flat color=primary')
+        dialog.open()
+
+    # 页面标题
+    ui.page_title('错误反馈系统')
+
+    # 页面头部
+    with ui.header(elevated=True).style('background-color: #2563eb').classes('items-center justify-between'):
+        ui.label('错误反馈系统').classes('text-2xl font-bold text-white')
+        with ui.row():
+            ui.button('首页', icon='home').props('flat color=white')
+            ui.button('帮助', icon='help').props('flat color=white')
+            ui.button('关于', icon='info').props('flat color=white')
+
+    # todo: 往下偏移
+    # 主要内容区域
+    with ui.row().classes('w-full max-w-7xl mx-auto p-4'):
+        # 左侧介绍区域
+        # w-1/4 w-3/4 不行，必须 w-2/3 ...
+
+        # todo: 居中
+        with ui.column().classes('w-1/4'):
+            ui.label('问题反馈说明').classes('text-xl font-bold text-blue-800 mb-4')
+            ui.markdown('''
+            **请提供以下信息帮助我解决问题：**
+
+            1. 详细描述问题现象
+            2. 提供您的联系方式
+            3. 上传相关文件（可选）
+
+            ''').classes('text-gray-700 mb-4')
+
+            ui.separator().classes('my-4')
+
+            with ui.column().classes('bg-blue-50 p-4 rounded-lg'):
+                ui.label('反馈小贴士').classes('text-lg font-bold text-blue-700 mb-2')
+                ui.markdown('''
+                - 尽可能详细描述问题重现步骤
+                - 提供截图或日志文件有助于快速定位问题
+                - 留下有效的联系方式以便我们与您沟通
+                - 紧急问题可添加QQ群: 592159151
+                ''')
+
+        # 右侧表单区域
+        with ui.column().classes('w-2/3 bg-white shadow-lg rounded-lg p-6'):
+            ui.label('错误反馈表单').classes('text-2xl font-bold text-gray-800 mb-6 mx-auto')
+
+            # 错误描述
+            ui.label('错误描述 *').classes('text-sm font-medium text-gray-700 mb-1')
+            description = ui.textarea(
+                label='请详细描述错误现象、重现步骤等',
+                placeholder='例如：当穿戴某件物品的时候...'
+            ).classes('w-full mb-4').props('outlined autogrow')
+
+            # 联系方式
+            ui.label('联系方式 *').classes('text-sm font-medium text-gray-700 mb-1')
+            contact = ui.input(
+                label='邮箱/电话',
+                placeholder='请输入您的邮箱或手机号码'
+            ).classes('w-full mb-4').props('outlined')
+
+            # 附件上传
+            ui.label('上传附件').classes('text-sm font-medium text-gray-700 mb-1')
+            with ui.column().classes(
+                    'w-full mb-4 border border-dashed border-gray-300 rounded-lg p-4 items-center'):
+                ui.icon('cloud_upload', size='lg').classes('text-blue-500 mb-2')
+                ui.label('点击或拖拽文件到此处上传').classes('text-gray-500')
+                ui.upload(
+                    label='选择文件',
+                    multiple=True,
+                    auto_upload=True,
+                    on_upload=lambda e: ui.notify(f'已上传: {e.name}')
+                ).props('accept=".jpg,.jpeg,.png,.log,.txt"').classes('mt-2')
+                ui.label('支持格式: JPG, PNG, LOG, TXT (最大10MB)').classes('text-xs text-gray-400 mt-2')
+
+            # 提交按钮
+            with ui.row().classes("w-full justify-end"):
+                submit_button = ui.button('提交反馈', on_click=submit_form, icon='send') \
+                    .classes(
+                    'bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md transition duration-300') \
+                    .props('no-caps')
+
+            # 提交时间显示
+            timestamp = ui.label('').classes('text-xs text-gray-500 mt-2 text-right')
+
+    # 页脚
+    with ui.footer().style('background-color: #f3f4f6').classes('text-center p-4 text-gray-600'):
+        ui.label('© 2023 技术支持中心 | 错误反馈系统 v1.0').classes('text-sm')
+        ui.label('服务时间: 周一至周五 9:00-18:00').classes('text-xs mt-1')
 
 
 # 使本地目录在指定的端点可用，这对于向前端提供本地数据（如图像）非常有用
@@ -411,4 +638,4 @@ app.add_static_files("/static", "./static")
 if __name__ == '__main__':
     # todo: 注意，感觉想要使用 nicegui 模仿各自页面，还是需要去系统学习 html css，尤其 css
     ui.run(title=TITLE, favicon="🌿", host="localhost", port=15001, dark=False, reload=False, show=False,
-           on_air=os.getenv("NICEGUI_TOKEN"))
+           on_air=os.getenv("NICEGUI_TOKEN"), storage_secret="NOSET")
