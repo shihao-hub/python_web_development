@@ -5,101 +5,51 @@
 
 """
 
+import asyncio
 import functools
 import json
 import os
 import re
 import random
+import traceback
+import uuid
 from abc import abstractmethod, ABC
 from datetime import datetime
 
 from typing_extensions import override
 from pathlib import Path
-from typing import Optional, Literal, Dict, Generator, List
+from typing import Optional, Literal, Dict, Generator, List, Union
 
 import markdown
 import cachetools
+from asgiref.sync import sync_to_async, async_to_sync
 from loguru import logger
 from markdown.extensions.toc import TocExtension
 from whitenoise import WhiteNoise
 from dotenv import load_dotenv
 
 from nicegui import ui, app
-from nicegui.events import Handler, ValueChangeEventArguments
+from nicegui.events import Handler, ValueChangeEventArguments, UploadEventArguments
+from nicegui.elements.tabs import Tab
 
 import settings
 import utils
-from settings import STATIC_DIR
+from settings import STATIC_DIR, ROOT_DIR
+from djangoorm import load_djangoorm
+from djangoorm.app import models
 
 load_dotenv()
+load_djangoorm()
 
 # todo: 设置 logger 的 level，与 settings.DEBUG 对齐
 
 TITLE = "心悦卿兮的饥荒模组合集"
 
-
-class Dao(ABC):
-    """数据层，最接近数据库的层级，与 Model 或者 SQL 打交道"""
-
-    def __init__(self, model=None):
-        self.model = model
-
-    @abstractmethod
-    def list(self):
-        pass
-
-    @abstractmethod
-    def get(self):
-        pass
-
-    @abstractmethod
-    def post(self):
-        pass
-
-    @abstractmethod
-    def put(self):
-        pass
-
-    @abstractmethod
-    def delete(self):
-        pass
+# Mock
+models.ModInfo.mock_init_data()
 
 
-class ModInfoDao:
-    def __init__(self):
-        self.model = None
-
-    def list(self) -> List[Dict]:
-        """获得有序的模组信息列表"""
-        # [note] mod info 数据有限，显然没必要使用 sqlite.exe，但是更多物品模组的物品介绍，我必须用，即使也不一定需要！
-        return json.loads((STATIC_DIR / "data" / "modinfos.json").read_text("utf-8"))
-
-
-class Service:
-    """服务层，使用 Dao 层的服务，给上层提供服务"""
-
-    def __init__(self):
-        self.mod_info_dao = ModInfoDao()
-
-    def get_mod_infos(self):
-        """模仿 django list 接口，后面需要改名，目前我认为 Service 和 Dao 不是特别需要"""
-        return self.mod_info_dao.list()
-
-
-# todo: 确定 MVC 架构并简单实践
-class Controller:
-    """暂且视其为 django 的 View/Response"""
-
-    def __init__(self):
-        self.service = Service()
-
-    def get_mod_infos(self):
-        """获得各个模组的信息"""
-        return self.service.get_mod_infos()
-
-    def get_mod_item_infos(self, mod_name="更多物品"):
-        """获得指定模组物品的信息"""
-        raise NotImplemented
+class Helper:
 
     def get_update_log_mardown_files(self):  # todo:  -> Generator[str] 如何使用？
         """读取指定文件名格式的 markdown 文件，并排序返回内容列表的生成器"""
@@ -119,11 +69,26 @@ class Controller:
         logger.debug("markdown files: {}", filenames)
         # 由于 filename 是 YYYY-MM-DD-更新日志.md 格式，所以将其从大到小排列即可
         for filename in filenames:
+            # todo: 为什么 open file 这个操作，不会提示不允许在异步中执行？
             yield filename, utils.read_markdown_file(filename)
 
 
+class Controller:
+    """
+    1. 暂且视其为 django 的 View/Response
+    2. 此处由 nicegui 调用，因此必须是 async 形式
+    """
+
+    def __init__(self):
+        pass
+
+    async def get_mod_item_infos(self, mod_name="更多物品"):
+        """获得指定模组物品的信息"""
+        raise NotImplemented
+
+
 class View:
-    class Header(ui.header):
+    class Header(ui.header):  # 无普遍性
         def __init__(self,
                      tab_names: List[str],
                      *args,
@@ -189,7 +154,137 @@ class View:
                 self.content_markdown = ui.markdown()
 
     class MarkdownTabPanel(ui.tab_panel):
-        """更多物品模组的 ui.tab_panel"""
+        class SearchInputCard(ui.card):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+
+                with self.classes(
+                        "w-full max-w-2xl mx-auto my-8 p-4 shadow-lg rounded-xl bg-white dark:bg-gray-800 transition-all"):
+                    with ui.row().classes("w-full items-center gap-2 flex-wrap"):
+                        # 搜索图标
+                        ui.icon("search").classes("text-gray-500 dark:text-gray-400 shrink-0")
+
+                        # 搜索输入框
+                        self.search_input = ui.input(placeholder="搜索内容...").classes("""
+                            flex-grow bg-gray-50 dark:bg-gray-700 rounded-lg
+                            px-4 py-2 text-gray-800 dark:text-gray-200
+                            focus:outline-none focus:ring-2 focus:ring-blue-500
+                            transition-all duration-300
+                        """).props("standout dense").on("keydown.enter", self.trigger_search)
+
+                        # 搜索按钮
+                        ui.button("搜索", on_click=self.trigger_search, icon="search").classes(
+                            "bg-blue-500 hover:bg-blue-600 text-white"
+                        ).props("dense")
+
+                        # 帮助提示按钮
+                        with ui.button(icon="help_outline").props("flat dense").classes(
+                                "text-gray-500 dark:text-gray-400"):
+                            with ui.tooltip().classes("max-w-xs"):
+                                ui.markdown("""
+                                **搜索提示:**
+                                - 按 `Enter` 键或点击搜索按钮进行搜索
+                                - 按 `Ctrl+F` 激活浏览器原生搜索功能
+                                - 按 `Esc` 键清除搜索内容
+                                """)
+
+                        # 快捷键提示
+                        ui.label().classes("text-xs text-gray-500 dark:text-gray-400 ml-2 hidden sm:block").set_text(
+                            "Ctrl+F")
+
+                    # 搜索选项行
+                    with ui.row().classes("w-full mt-3 justify-between items-center gap-4 flex-wrap"):
+                        with ui.row().classes("items-center gap-3"):
+                            # 搜索选项
+                            ui.toggle(["标题", "内容", "标签"], value="内容").props("dense").bind_value(self,
+                                                                                                        "search_type")
+                            ui.checkbox("区分大小写").bind_value(self, "case_sensitive")
+
+                        # 搜索结果统计
+                        self.result_label = ui.label().classes("text-sm text-gray-600 dark:text-gray-300")
+
+                        # 清空按钮
+                        ui.button("清空", on_click=self.clear_search, icon="clear").classes(
+                            "text-gray-500 hover:text-red-500"
+                        ).props("flat dense").bind_visibility_from(self.search_input, "value", lambda v: bool(v))
+
+            def trigger_search(self):
+                """触发搜索功能"""
+                search_text = self.search_input.value.strip()
+                if not search_text:
+                    ui.notify("请输入搜索内容", type="warning")
+                    return
+
+                # 在这里添加您的实际搜索逻辑
+                ui.notify(f"正在搜索: {search_text}")
+
+                # 更新结果统计
+                self.result_label.set_text(f"找到 25 个相关结果")
+
+                # 激活浏览器搜索（模拟 Ctrl+F）
+                self.activate_browser_search(search_text)
+
+            def clear_search(self):
+                """清空搜索内容"""
+                self.search_input.value = ""
+                self.result_label.set_text("")
+                ui.notify("已清除搜索内容", type="positive")
+
+                # 清除浏览器搜索高亮
+                self.clear_browser_search()
+
+            def activate_browser_search(self, text):
+                """激活浏览器原生搜索功能"""
+                # 使用 JavaScript 模拟 Ctrl+F 并填充搜索词
+                js_code = f"""
+                    // 尝试激活浏览器的查找功能
+                    try {{
+                        // 创建一个自定义事件模拟 Ctrl+F
+                        const event = new KeyboardEvent('keydown', {{
+                            key: 'f',
+                            ctrlKey: true,
+                            bubbles: true,
+                            cancelable: true
+                        }});
+
+                        // 触发事件
+                        document.dispatchEvent(event);
+
+                        // 延迟填充搜索框（浏览器需要时间打开搜索栏）
+                        setTimeout(() => {{
+                            // 尝试找到浏览器的搜索框并填充内容
+                            const searchInputs = document.querySelectorAll('input[type="search"], input[name="find"]');
+                            if (searchInputs.length > 0) {{
+                                searchInputs[0].value = '{text}';
+                                searchInputs[0].dispatchEvent(new Event('input', {{ bubbles: true }}));
+                            }} else {{
+                                // 如果找不到搜索框，使用 window.find 方法
+                                window.find('{text}');
+                            }}
+                        }}, 300);
+                    }} catch (e) {{
+                        console.error('激活浏览器搜索失败:', e);
+                        // 回退到 window.find 方法
+                        window.find('{text}');
+                    }}
+                """
+                ui.run_javascript(js_code)
+
+            def clear_browser_search(self):
+                """清除浏览器搜索高亮"""
+                ui.run_javascript("""
+                    // 清除浏览器搜索高亮
+                    if (window.getSelection) {
+                        window.getSelection().removeAllRanges();
+                    }
+
+                    // 尝试清除浏览器搜索框内容
+                    const searchInputs = document.querySelectorAll('input[type="search"], input[name="find"]');
+                    if (searchInputs.length > 0) {
+                        searchInputs[0].value = '';
+                        searchInputs[0].dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                """)
 
         def __init__(self, tab: ui.tab, doc_path: str):
             super().__init__(tab)
@@ -198,7 +293,10 @@ class View:
                 markdown_content = self.read_markdown_file(doc_path)
 
                 # 使用响应式容器
-                with ui.column().classes("w-full flex justify-center items-center p-4"):
+                with ui.column().classes("w-full flex justify-center items-center p-4 gap-y-0"):
+                    # todo: 推荐加到 ui.header 里，直接复用 ctrl+F，凑活吧！
+                    # self.SearchInputCard()
+
                     # 主内容容器 - 宽度为屏幕的 3/5
                     with ui.card().classes("""
                         w-full lg:w-3/5  # 大屏幕60%宽度，小屏幕全宽
@@ -220,8 +318,143 @@ class View:
                 return """文档不存在"""
             return filepath.read_text("utf-8")
 
-    def __init__(self):
+    class ErrorFeedbackPanel(ui.tab_panel):
+        def __init__(self, name: Union[Tab, str]) -> None:
+            super().__init__(name)
+
+            self.file_upload_manager = utils.FileUploadManager()
+            # todo: 存相对路径！
+            self.uploaded_files: List[Path] = []
+
+            with self, ui.card().classes("w-full max-w-3xl mx-auto p-8 shadow-lg rounded-lg"):
+                ui.label("错误反馈表单").classes("text-h4 text-primary mb-6 mx-auto")
+
+                # 错误场景 (多行文本)
+                ui.label("错误场景：").classes("text-lg font-medium")
+                self.error_scenario = ui.textarea(label="请详细描述遇到的问题",
+                                                  placeholder="例如：装备某件物品时游戏崩溃...").classes("w-full").props(
+                    "outlined")
+
+                # 联系方式
+                ui.label("联系方式：").classes("text-lg font-medium mt-6")
+                self.contact = ui.input(label="QQ号码", placeholder="请输入您的QQ号码",
+                                        validation=self.qq_validation).classes("w-full").props("outlined")
+
+                # 文件上传
+                # todo: 关于安全问题，需要检测文件上传上限
+                #       比如：某个指定的目录存放上传的文件，每次上传并存储文件后，将把目录下的 .size 文件更新，
+                #       每次上传也会读取
+                # todo: 需要解决 ui.upload 上传后表单未提交的情况，为此，需要唯一标识啊，或者有无什么解决办法？
+                ui.label("附件上传：").classes("text-lg font-medium mt-6")
+                with ui.column().classes("w-full items-stretch"):
+                    self.upload = ui.upload(
+                        label="选择文件",
+                        multiple=True,
+                        on_upload=self.handle_upload,
+                        max_file_size=10 * 1024 * 1024,  # 10MB限制
+                        auto_upload=True,  # 自动上传
+                        on_rejected=lambda e: ui.notify(f"文件超过大小限制 (最大10MB)", type='negative')
+                    ).classes("w-full")
+                    ui.label("支持上传日志文件、截图等 (最多5个文件，每个文件不超过10MB)").classes(
+                        "text-sm text-gray-600 mt-1")
+
+                # 提交按钮
+                with ui.row().classes("w-full justify-end"):
+                    ui.button("提交反馈", on_click=lambda: self.submit_form(), icon="send").classes(
+                        "mt-8 bg-blue-600 text-white")
+
+                # 创建提交结果对话框
+            self.dialog = ui.dialog().classes("max-w-2xl")
+            with self.dialog:
+                ui.label("Test")
+
+        def _create_ui(self):
+            """创建 UI"""
+            # todo: 骨架和皮肤只在此处？
+
+        def _register_callbacks(self):
+            """注册回调"""
+            # todo: 血肉在此处？
+
+        def handle_upload_v0(self, e: UploadEventArguments):
+            logger.debug("[on_upload] name: {}, type: {}", e.name, e.type)
+            _, extenstion = os.path.splitext(e.name)
+            filename = f"{uuid.uuid4()}"
+            if extenstion:
+                filename = filename + "." + extenstion
+            with open(str(settings.UPLOADED_DIR / filename), "wb") as f:
+                f.write(e.content.read())
+
+        def handle_upload(self, e: UploadEventArguments):
+            logger.debug("[on_upload] name: {}, type: {}", e.name, e.type)
+            filepath = self.file_upload_manager.save(e.content.read(), os.path.splitext(e.name)[1])
+            self.uploaded_files.append(filepath)
+
+        @property
+        def qq_validation(self):
+            def is_valid_qq_logic(qq_number: str) -> bool:
+                """通过逻辑判断校验QQ号码"""
+                # 检查是否为纯数字且长度合法
+                if not qq_number.isdigit() or len(qq_number) < 5 or len(qq_number) > 12:
+                    return False
+                # 检查首位是否为0
+                if qq_number[0] == '0':
+                    return False
+                return True
+
+            return {"请输入正确格式的QQ号码": is_valid_qq_logic}
+
+        async def submit_form(self):
+            logger.debug("提交表单")
+            try:
+
+                # 在实际应用中，这里可以添加发送邮件/保存到数据库等操作
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                logger.debug("self.uploaded_files: {}", self.uploaded_files)
+
+                # 显示提交成功信息
+                # fixme: 无法显示，不止为何
+                self.dialog.clear()
+                with self.dialog:
+                    ui.label("反馈提交成功！").classes("text-h6 text-green")
+                    ui.label(f"提交时间: {timestamp}")
+                    ui.label(f"错误原因: {self.error_scenario.value}")
+                    ui.label(f"联系方式: {self.contact.value}")
+
+                    ui.button("关闭", on_click=self.dialog.close).classes("mt-4")
+
+                self.dialog.open()
+
+                # 存储数据至数据库中
+                # （前后端就是相辅相成，后端数据库表决定前端，但是前端也决定后端，虽然全部都由需求决定）
+                await models.ErrorFeedbackInfo.objects.acreate(**dict(
+                    error_scenario=self.error_scenario.value,
+                    contact=self.contact.value,
+                    filepaths=[str(e) for e in self.uploaded_files]
+                ))
+            except Exception as e:
+                logger.error(f"{e}\n{traceback.format_exc()}")
+                ui.notify(f"出现出乎意料的操作，请联系开发人员（当前时间：{datetime.now()}）", type="negative")
+            else:
+                ui.notify("错误反馈成功！", type="positive")
+                self.uploaded_files.clear()
+                logger.info("self.uploaded_files 清除成功！")
+                # todo: 清空表单数据
+
+                self.error_scenario.value = ""
+                self.error_scenario.update()
+                self.contact.value = ""
+                self.contact.update()
+                self.upload.reset()
+
+                # todo: 用户刷新后数据是否应该存储保证页面展示？
+                # todo: 确定一下 self.uploaded_files 是否是每个客户端链接独属的？
+
+    def __init__(self, mod_infos):
         self.controller = Controller()
+        self.helper = Helper()
+        self.mod_infos = mod_infos
 
         # 预声明
         # todo: 但是这导致每次跳转会跳到这里，而不是初始化的地方，需要解决
@@ -283,7 +516,7 @@ class View:
     def _create_header(self):
         self.header = self.Header([
             "主页",
-            *[e["name"] for e in self.controller.get_mod_infos()],
+            *[e["name"] for e in self.mod_infos],
             "更新日志",
             "错误反馈",
         ])
@@ -297,7 +530,7 @@ class View:
             ui.label("饥荒模组合集").classes("md:mx-auto text-h4")
 
             with ui.grid().classes("w-full gap-y-8 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"):
-                for mod in self.controller.get_mod_infos():
+                for mod in self.mod_infos:
                     card = self.ModInfoCard(mod)
                     card.on("click", functools.partial(
                         lambda mod, e: self.nav_tabs.set_value(self.tabs[mod["name"]]), mod))
@@ -314,7 +547,7 @@ class View:
                 #       .nicegui-tab-panel 的 display: flex; 取消掉就行，但是显然有点小问题，得找到一种方式，
                 #       轻微进行覆盖比较好，比如添加 classes, style 尝试覆盖顶层（嗯？行内 style 是不是强一点）
                 #       .style("display: revert !important;")
-                for filename, content in self.controller.get_update_log_mardown_files():
+                for filename, content in self.helper.get_update_log_mardown_files():
                     # todo: 优化 card 及其内部 markdown
                     with ui.card().classes("w-full h-80 overflow-auto"):
                         with ui.row():  # todo: 让其中的元素居于中轴
@@ -379,88 +612,11 @@ class View:
                     ui.space()
                     ui.button("提交").classes("justify-end")
 
-    def _create_error_feedback_panel(self):
-        with ui.tab_panel(self.tabs["错误反馈"]):
-            def submit_form():
-                # 表单验证
-                if not error_scenario.value:
-                    ui.notify("请填写错误场景！", type='negative')
-                    return
-                if not contact.value:
-                    ui.notify("请填写联系方式！", type='negative')
-                    return
-                if not contact.value.strip().isprintable():
-                    ui.notify("联系方式包含非法字符！", type='negative')
-                    return
-                # 处理文件上传
-                file_info = []
-                if upload.files:
-                    for file in upload.files:
-                        file_info.append({
-                            'name': file.name,
-                            'size': f"{len(file.content) / 1024:.1f} KB",
-                            'type': file.type
-                        })
-
-                # 在实际应用中，这里可以添加发送邮件/保存到数据库等操作
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-                # 显示提交成功信息
-                with dialog:
-                    ui.label("反馈提交成功！").classes("text-h6 text-green")
-                    ui.label(f"提交时间: {timestamp}")
-                    ui.label(f"错误原因: {error_scenario.value}")
-                    ui.label(f"联系方式: {contact.value}")
-
-                    if file_info:
-                        ui.label("上传附件:")
-                        for info in file_info:
-                            ui.label(f"· {info['name']} ({info['size']}, {info['type']})")
-
-                    ui.button("关闭", on_click=dialog.close).classes("mt-4")
-
-                dialog.open()
-
-            with ui.card().classes("w-full max-w-3xl mx-auto p-8 shadow-lg rounded-lg"):
-                ui.label("错误反馈表单").classes("text-h4 text-primary mb-6 mx-auto")
-
-                # 错误场景 (多行文本)
-                ui.label("错误场景：").classes("text-lg font-medium")
-                error_scenario = ui.textarea(label="请详细描述遇到的问题",
-                                             placeholder="例如：装备某件物品时游戏崩溃...").classes("w-full").props(
-                    "outlined")
-
-                # 联系方式
-                ui.label("联系方式：").classes("text-lg font-medium mt-6")
-                contact = ui.input(label="QQ", placeholder="请输入您的QQ号码").classes("w-full").props("outlined")
-
-                # 文件上传
-                # todo: 关于安全问题，需要检测文件上传上限
-                #       比如：某个指定的目录存放上传的文件，每次上传并存储文件后，将把目录下的 .size 文件更新，
-                #       每次上传也会读取
-                # todo: 需要解决 ui.upload 上传后表单未提交的情况，为此，需要唯一标识啊，或者有无什么解决办法？
-                ui.label("附件上传：").classes("text-lg font-medium mt-6")
-                with ui.column().classes("w-full items-stretch"):
-                    upload = ui.upload(
-                        label="选择文件",
-                        multiple=True,
-                        max_file_size=10 * 1024 * 1024,  # 10MB限制
-                        auto_upload=True,
-                        on_rejected=lambda e: ui.notify(f"文件 {e.name} 超过大小限制 (最大10MB)", type='negative')
-                    ).classes("w-full")
-                    ui.label("支持上传日志文件、截图等 (最多5个文件，每个文件不超过10MB)").classes(
-                        "text-sm text-gray-600 mt-1")
-
-                # 提交按钮
-                with ui.row().classes("w-full justify-end"):
-                    ui.button("提交反馈", on_click=submit_form, icon="send").classes("mt-8 bg-blue-600 text-white")
-
-            # 创建提交结果对话框
-            dialog = ui.dialog().classes("max-w-2xl")
-
     def _create_content(self):
         with ui.tab_panels(self.nav_tabs).classes("w-full") as self.nav_tabs_panels:
             self.nav_tabs_panels.bind_value(self, "current_nav_tab")
+
+            # todo: 我想知道 nicegui 或者说前端开发的文件结构如何，但是目前我认为不管怎么样，按照自己的理解去做吧！
 
             self._create_home_panel()
             # todo: 左侧目录栏是有必要实现的，右侧可以选择不需要，要不添加一个单纯的活动式菜单栏？点击可以缩小成一个按钮。
@@ -469,7 +625,7 @@ class View:
             self.MarkdownTabPanel(self.tabs["复活按钮和传送按钮"], "./复活按钮和传送按钮.md")
             self.MarkdownTabPanel(self.tabs["便携大箱子"], "./便携大箱子.md")
             self._create_update_log_panel()
-            self._create_error_feedback_panel()
+            self.ErrorFeedbackPanel(self.tabs["错误反馈"])
 
     def _create_footer(self):
         # todo: 暂且计划是加一个不算明显的 footer，用于记录一些信息，比如点击量，访问量等
@@ -477,11 +633,10 @@ class View:
 
 
 @ui.page("/")
-def page_index():
-    # todo: 能不能写出一个通用的移动端和桌面端的页面？不要搞得移动端直接面目全非。
-    #       比如就目前的实现，header 移动端直接面目全非，tabs 还消失了，绷不住。
-    # fixme: 速速考虑一下！
-    View()
+async def page_index():
+    # 严格注意此处
+    mod_infos = await sync_to_async(lambda: models.ModInfo.objects.filter(is_deleted=False).order_by("id"))()
+    View([modinfo.to_dict() async for modinfo in mod_infos])
 
 
 @ui.page("/moreitems")

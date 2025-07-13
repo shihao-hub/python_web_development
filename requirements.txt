@@ -17,13 +17,13 @@ bs4
 orjson
 aiohttp
 pydantic
+asgiref
 
 pyinstaller
-
 python-dotenv
 loguru
-# sh
 requests
+schema
 
 pandas
 pandapower
@@ -46,5 +46,4 @@ matplotlib
 numpy
 plotly
 pywebview
-# webview
 cachetools

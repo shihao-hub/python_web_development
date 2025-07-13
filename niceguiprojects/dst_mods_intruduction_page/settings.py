@@ -14,4 +14,6 @@ DEBUG = True
 ROOT_DIR = Path(__file__).resolve().parent  # 项目根目录
 STATIC_DIR = ROOT_DIR / "static"
 
-DATABASE_URL = "sqlite:///" + str(ROOT_DIR / "sqlite.db")
+UPLOADED_DIR = ROOT_DIR / "storage" / "uploads"
+
+CACHE_TTL = 60 * 60 * 12 if not DEBUG else 2  # 缓存的时间
