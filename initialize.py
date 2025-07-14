@@ -129,6 +129,8 @@ def main():
         """运行命令并返回结果"""
         old_command = command
         try:
+            print(f"Python 脚本的当前工作目录：{os.getcwd()}")
+
             command = copy.deepcopy(old_command)
 
             # ------------------------ command 内容转换 ------------------------ #
@@ -148,7 +150,7 @@ def main():
                 command[i] = f'{new_path}'
             print(f"command: {command}")
 
-            # 捕获输出的意思应该是控制台不答应，被管道捕获了，目的应该是为了进程协同，将当前进程输出通过管道传递给下一个进程？
+            # 捕获输出的意思应该是控制台不打印，被管道捕获了，目的应该是为了进程协同，将当前进程输出通过管道传递给下一个进程？
             if capture_output:
                 result = subprocess.run(
                     command,
