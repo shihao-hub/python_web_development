@@ -112,6 +112,7 @@ def read_static_file(relative_path: str) -> str:
     return filepath.read_text("utf-8")  # 进行了一层封装
 
 
+# fixme: 为什么测试发现不生效？难道 nicegui 的 ui.page 每个客户端端的资源全部创一份？
 # @cachetools.cached(cachetools.TTLCache(maxsize=20, ttl=60 * 5))
 def read_markdown_file(relative_path: str):
     """读取 markdown 文件"""

@@ -22,3 +22,5 @@ TITLE = "心悦卿兮的饥荒模组合集"
 FAVICON = "🌿"
 HOST = "localhost"
 PORT = 15001
+RECONNECT_TIMEOUT = 10
+NATIVE = False

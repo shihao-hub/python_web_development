@@ -40,8 +40,8 @@ class ModInfo(models.Model):
             dict(name="更多物品", description="新增 80+ 种物品，涵盖装备、建筑等方面。", author="心悦卿兮",
                  tags=["联机", "物品", "辅助"]),
             dict(name="宠物增强", description="修改原版宠物", author="心悦卿兮", tags=["联机"]),
-            dict(name="复活按钮和传送按钮", description="无", author="心悦卿兮", tags=["联机"]),
-            dict(name="便携大箱子", description="无", author="心悦卿兮", tags=["联机"]),
+            dict(name="复活按钮和传送按钮", description="一手复活，一手传送。", author="心悦卿兮", tags=["联机"]),
+            dict(name="便携大箱子", description="120 格大箱子，把家装在身上！", author="心悦卿兮", tags=["联机"]),
         ]
         with transaction.atomic():
             for obj_dict in mork_items:

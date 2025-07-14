@@ -14,13 +14,14 @@ import time
 import traceback
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Union, Optional, Tuple
+from typing import Dict, List, Union, Optional, Tuple, Callable, Any
 
 import cachetools
 from asgiref.sync import sync_to_async
 from dotenv import load_dotenv
 from loguru import logger
 
+from fastapi import Query, Request
 from nicegui import ui, app
 from nicegui.elements.tabs import Tab
 from nicegui.events import ValueChangeEventArguments, UploadEventArguments
@@ -107,7 +108,7 @@ class View:
                         ui.label(title).classes("text-xl font-bold")
 
                     # 右侧：开关
-                    # todo: dark_mode 需要优化，除此以外，在添加一个小眼睛图标，鼠标放上去展示访客量（手机端点击弹窗）
+                    # todo: dark_mode 需要优化
                     switch = ui.switch(on_change=lambda e: ui.dark_mode(e.value))  # todo: .tooltip()
                     if not nicegui_settings.DEBUG:
                         switch.classes("hidden")
@@ -320,7 +321,7 @@ class View:
             return filepath.read_text("utf-8")
 
     class _create_error_feedback_panel(ui.tab_panel):  # noqa: Class names should use CapWords convention
-        def _create_file_upload_component(self) -> ui.upload:
+        def _create_file_upload_component(self, set_button_enabled: Callable[[bool], Any]) -> ui.upload:
             """创建文件上传相关组件"""
 
             def _handle_upload(e: UploadEventArguments):
@@ -330,23 +331,26 @@ class View:
                                                     is_temp=True,
                                                     ret_relative_path=True)
                 self._uploaded_files.append(filepath)
+                set_button_enabled(True)
 
             file_upload_manager = utils.FileUploadManager()
 
-            # fixme: 文件上传相关逻辑待定
             # 文件上传
-            # todo: 关于安全问题，需要检测文件上传上限
-            #       比如：某个指定的目录存放上传的文件，每次上传并存储文件后，将把目录下的 .size 文件更新，
-            #       每次上传也会读取
-            # todo: 需要解决 ui.upload 上传后表单未提交的情况，为此，需要唯一标识啊，或者有无什么解决办法？
             with ui.column().classes("w-full items-stretch"):
                 upload = ui.upload(
                     label="选择文件",
                     multiple=True,
-                    on_upload=_handle_upload,
                     max_file_size=10 * 1024 * 1024,  # 10MB限制
                     auto_upload=True,  # 自动上传
-                    on_rejected=lambda e: ui.notify(f"文件超过大小限制 (最大10MB)", type='negative')
+                    on_begin_upload=lambda: (
+                        logger.debug("开始文件上传"),
+                        set_button_enabled(False)
+                    ),
+                    on_upload=_handle_upload,
+                    on_rejected=lambda e: (
+                        ui.notify(f"文件超过大小限制 (最大10MB)", type="negative"),
+                        set_button_enabled(True)
+                    )
                 ).classes("w-full")
                 ui.label("支持上传日志文件、截图等 (最多5个文件，每个文件不超过10MB)").classes(
                     "text-sm text-gray-600 mt-1")
@@ -355,7 +359,7 @@ class View:
         def __init__(self, name: Union[Tab, str]) -> None:
             super().__init__(name)
 
-            # todo: 存相对路径！
+            # 存相对路径！
             self._uploaded_files: List[Path] = []
 
             # 预声明
@@ -379,15 +383,23 @@ class View:
                     "w-full").props(
                     "outlined")
 
+                # [Q] 当连续输入 11111 的时候，validation 似乎有问题...校验有延迟...数据不知道是不是响应延迟...
+                # [A] 确定了，on_air 模式存在极大的延迟则会存在这个问题！
                 ui.label("联系方式：").classes("text-lg font-medium mt-6")
                 contact = ui.input(label="QQ号码", placeholder="请输入您的QQ号码",
                                    validation=self._contact_validation).classes("w-full").props("outlined")
 
                 ui.label("附件上传：").classes("text-lg font-medium mt-6")
-                upload = self._create_file_upload_component()
+                # todo: 文件上传的时候，反馈按钮应该置灰，上传完毕再允许点击
+                # todo: 无响应弹窗也应该中文化
+                upload = self._create_file_upload_component(lambda e: (
+                    logger.debug("{}", e),
+                    setattr(self._submit, "enabled", e),
+                    self._submit.update()
+                ))
 
                 with ui.row().classes("w-full justify-end"):
-                    ui.button("提交反馈", on_click=lambda: self._submit_form(), icon="send").classes(
+                    self._submit = ui.button("提交反馈", on_click=lambda: self._submit_form(), icon="send").classes(
                         "mt-8 bg-blue-600 text-white")
 
             return error_scenario, contact, upload
@@ -467,19 +479,18 @@ class View:
 
                 self._rebuild()
 
-    def __init__(self, mod_infos):
+    def __init__(self, mod_infos: List[Dict], default_tab_name: Optional[str]):
         self._controller = Controller()
         self._mod_infos = mod_infos
+        self._default_tab_name = default_tab_name
 
-        # todo: 是否需要预声明？
-        # todo: 但是这导致每次跳转会跳到这里，而不是初始化的地方，需要解决
-        # todo: 能否在非 __init__ 中定义的属性都警告啊？
+        # todo: 是否需要预声明？但是这导致每次跳转会跳到这里，而不是初始化的地方，需要解决
         # self.header: Optional[ui.header] = None
         # self.nav_tabs: Optional[ui.tabs] = None
         # self.tabs: Optional[Dict[str, ui.tab]] = None
         # self.nav_tabs_panels: Optional[ui.tab_panels] = None
 
-        # 初始化页面结构
+        # 【初始化页面结构】
         ui.add_css(utils.read_static_file("./index.css"))
 
         self._dark = ui.dark_mode()
@@ -488,8 +499,11 @@ class View:
         self._create_content()
         self._create_footer()
 
-        # 页面初始化后
-        self._current_nav_tab = self._header.tabs[app.storage.user.get("nav_tabs:tab_name", "主页")]
+        # 【页面初始化后】
+        if (self._default_tab_name is None) or (self._default_tab_name not in [e["name"] for e in self._mod_infos]):
+            self._current_nav_tab = self._header.tabs[app.storage.user.get("nav_tabs:tab_name", "主页")]
+        else:
+            self._current_nav_tab = self._header.tabs[self._default_tab_name]
 
         # 注册定时器
         self._register_timers()
@@ -505,8 +519,6 @@ class View:
             pass
 
         # todo: 练习一下，加载完弹出一个公告 dialog
-
-        # todo: 需要记住客户端的信息，比如现在在哪个 tab，加载完成后，定位到哪里！至于客户端信息，建议只需要单纯 k:v
 
     def _register_events(self):
         """统一注册事件"""
@@ -552,9 +564,10 @@ class View:
         with ui.tab_panels(self._header.nav_tabs).classes("w-full") as self._nav_tabs_panels:
             self._nav_tabs_panels.bind_value(self, "_current_nav_tab")
 
+            # todo: 每次刷新都会将所有页面的数据返回，存在响应过慢的情况，应该处理成懒加载，切换 tab 的时候再渲染！
+
             self._create_home_panel(self._header.tabs["主页"])
 
-            # todo: 左侧目录栏是有必要实现的，右侧可以选择不需要，要不添加一个单纯的活动式菜单栏？点击可以缩小成一个按钮。
             self._create_markdown_tab_panel(self._header.tabs["更多物品"], "./更多物品.md")
             self._create_markdown_tab_panel(self._header.tabs["宠物增强"], "./宠物增强.md")
             self._create_markdown_tab_panel(self._header.tabs["复活按钮和传送按钮"], "./复活按钮和传送按钮.md")
@@ -607,9 +620,6 @@ class View:
                                     self._update_log_dialog.open()
                                 ), content))
 
-                            # todo: 如果添加这个，需要将其放在最右侧才行
-                            # ui.button("Download", on_click=lambda: ui.download(f"/static/markdown/{filename}"))
-
                         ui.separator()
                         # todo: 推荐美化一下？还是说 markdown 也能支持图片嵌入渲染的能力？
                         # 此处的超长 classes 是 ai 生成的，默认的 h1 h2 h3 太大了
@@ -632,10 +642,10 @@ class View:
 
 
 @ui.page("/")
-async def page_index():
+async def page_index(request: Request, tab_name: str = Query(default=None)):
     # 严格注意此处
     mod_infos = await sync_to_async(lambda: models.ModInfo.objects.filter(is_deleted=False).order_by("id"))()
-    View([modinfo.to_dict() async for modinfo in mod_infos])
+    View([modinfo.to_dict() async for modinfo in mod_infos], tab_name)
 
 
 @ui.page("/moreitems")
@@ -661,8 +671,10 @@ if __name__ == '__main__':
            favicon=nicegui_settings.FAVICON,
            host=nicegui_settings.HOST,
            port=nicegui_settings.PORT,
+           reconnect_timeout=nicegui_settings.RECONNECT_TIMEOUT,
+           native=nicegui_settings.NATIVE,
            dark=False,
            reload=False,
            show=False,
-           on_air=os.getenv("NICEGUI_TOKEN"),
+           on_air=os.getenv("NICEGUI_TOKEN") if nicegui_settings.DEBUG else False,
            storage_secret="NOSET")
