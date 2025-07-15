@@ -12,7 +12,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 
-# todo: 改为全局形式，应该又是 middleware
+# todo: handle_unexpected_exception 改为全局形式，应该又是 middleware
 from apps.core import handle_unexpected_exception, SuccessResponse, ErrorResponse
 from .serializers import GroupSerializer, UserSerializer, CourseSerializer
 from .models import Course
