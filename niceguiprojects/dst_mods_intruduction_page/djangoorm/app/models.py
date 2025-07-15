@@ -1,8 +1,11 @@
+import json
+from pathlib import Path
 from typing import List, Dict
 
 from schema import Schema
 from loguru import logger
 
+from django.conf import settings
 from django.db import models, transaction
 
 
@@ -34,19 +37,20 @@ class ModInfo(models.Model):
     is_deleted = models.BooleanField(verbose_name="是否删除", default=False)
 
     @classmethod
-    def mock_init_data(cls):
-        """mork 的初始数据，进行创建或更新操作"""
-        mork_items = [
-            dict(name="更多物品", description="新增 80+ 种物品，涵盖装备、建筑等方面。", author="心悦卿兮",
-                 tags=["联机", "物品", "辅助"]),
-            dict(name="宠物增强", description="修改原版宠物", author="心悦卿兮", tags=["联机"]),
-            dict(name="复活按钮和传送按钮", description="一手复活，一手传送。", author="心悦卿兮", tags=["联机"]),
-            dict(name="便携大箱子", description="120 格大箱子，把家装在身上！", author="心悦卿兮", tags=["联机"]),
-        ]
+    def init_data(cls):
+        """初始化数据"""
+        # 进行创建或更新操作
+        # update_or_create 并不会更新 updated_at 字段，只有 save 函数才会触发自动更新
+        # 其实说实在的，update_or_create 不就是 get_or_create + update？不会校验数据变化与否的！
+        json_path = settings.ROOT_DIR / "data" / "modinfos.json"
+        if not json_path.exists():
+            logger.error("文件 {} 不存在！", json_path)
+            return
+        mork_items = json.loads(json_path.read_text("utf-8"))
         with transaction.atomic():
             for obj_dict in mork_items:
                 cls.objects.update_or_create(defaults=obj_dict, name=obj_dict["name"])
-        logger.debug("创建 Mork 数据成功：{}", [e["name"] for e in mork_items])
+        logger.debug("初始化数据成功：{}", [e["name"] for e in mork_items])
 
     def to_dict(self):
         return {
