@@ -27,6 +27,8 @@ from rest_framework_simplejwt.views import (
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 urlpatterns = [
+    path("dajiangtasks/", include("apps.dajiangtasks.urls")),
+
     # index[special case] 需要特殊对待
     path('', include("apps.index.urls")),
 
