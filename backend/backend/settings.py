@@ -75,6 +75,8 @@ INSTALLED_APPS = [
     "apps.powernetworkreport",
     "apps.testaccount",
     "apps.testdrfapi",
+
+    "apps.dajiangtasks",
 ]
 
 # Django 的 admin 和普通视图使用 Session 认证，过期时间设置
