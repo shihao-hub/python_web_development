@@ -5,7 +5,7 @@ from pathlib import Path
 import cachetools
 from loguru import logger
 
-from nicegui_settings import ROOT_DIR, STATIC_DIR
+from djangoorm import nicegui_settings
 
 
 class FileUploadError(Exception):
@@ -18,8 +18,8 @@ class FileUploadManager:
         pass
     """
 
-    STORAGE_PATH = ROOT_DIR / "storage" / "uploads"
-    TEMP_STORAGE_PATH = ROOT_DIR / "storage" / "temp_uploads"
+    STORAGE_PATH = nicegui_settings.ROOT_DIR / "storage" / "uploads"
+    TEMP_STORAGE_PATH = nicegui_settings.ROOT_DIR / "storage" / "temp_uploads"
 
     def __init__(self):
         self._storage_path = self.STORAGE_PATH
@@ -104,7 +104,7 @@ class FileUploadManager:
 # @cachetools.cached(cachetools.TTLCache(maxsize=20, ttl=60 * 5))
 def read_static_file(relative_path: str) -> str:
     """读取 static 文件"""
-    filepath = ROOT_DIR / "static"
+    filepath = nicegui_settings.ROOT_DIR / "static"
     for part in Path(relative_path).parts:
         filepath = filepath / part
     if not filepath.exists():
@@ -116,5 +116,5 @@ def read_static_file(relative_path: str) -> str:
 # @cachetools.cached(cachetools.TTLCache(maxsize=20, ttl=60 * 5))
 def read_markdown_file(relative_path: str):
     """读取 markdown 文件"""
-    markdown_path = STATIC_DIR / "markdown" / Path(relative_path)
+    markdown_path = nicegui_settings.STATIC_DIR / "markdown" / Path(relative_path)
     return markdown_path.read_text("utf-8")
