@@ -97,8 +97,7 @@ MIDDLEWARE = [
 
     "django.middleware.locale.LocaleMiddleware",  # 设置国际化中间件
 
-    # whitenoise 中间件，用于提供静态文件服务
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # whitenoise 中间件，用于提供静态文件服务
 
     "middleware.LoginRedirectMiddleware",  # 设置国际化中间件
 ]
@@ -129,7 +128,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': (BASE_DIR / 'test_db.sqlite3') if DEBUG else (BASE_DIR / 'db.sqlite3'),
     }
 }
 
@@ -186,7 +185,7 @@ def _create_logs_directory():
 
 _create_logs_directory()
 
-# django 内置完整的日志记录框架
+# django 内置完整的日志记录框架 # todo: 需要确定一下和 loguru 的兼容性
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -231,7 +230,7 @@ LOGGING = {
         'file': {
             'level': 'ERROR',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': ROOT_DIR / 'logs/django_errors.log',  # 目录不会自动创建
+            'filename': ROOT_DIR / 'logs' / 'django_errors.log',  # 目录不会自动创建
             'maxBytes': 1024 * 1024 * 5,  # 5 MB
             'backupCount': 5,
             'formatter': 'verbose',
@@ -245,7 +244,7 @@ LOGGING = {
         'json_file': {
             'level': 'ERROR',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': ROOT_DIR / 'logs/django_errors.json',
+            'filename': ROOT_DIR / 'logs' / 'django_errors.json',
             'maxBytes': 1024 * 1024 * 5,  # 5 MB
             'backupCount': 5,
             'formatter': 'json',
@@ -305,10 +304,8 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # LOGOUT_REDIRECT_URL = '/api-auth/login/'
 
 LOGIN_REDIRECT_URL = '/'  # 登录成功后重定向的URL
-# 这个被 drf 修改后导致 django admin 登出路由有问题
-LOGOUT_REDIRECT_URL = '/admin/login/'  # 登出后重定向
-# todo: 登录页面的 URL（当使用 login_required 装饰器时）
-LOGIN_URL = '/login/'
+LOGOUT_REDIRECT_URL = '/admin/login/'  # 登出后重定向（这个被 drf 修改后导致 django admin 登出路由有问题）
+LOGIN_URL = '/login/'  # todo: 登录页面的 URL（当使用 login_required 装饰器时）
 
 # todo: 创建 production_settings.py 和 dev_settings.py
 
@@ -342,8 +339,7 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.FormParser',
         'rest_framework.parsers.MultiPartParser',
     ],
-    # 权限相关配置：必须登录才能调用接口
-    # 此处为全局权限控制，所有 DRF 视图（API 端点）默认要求用户认证（应该是限定了 DRF 视图才会如此）
+    # 权限相关配置：必须登录才能调用接口（此处为全局权限控制，所有 DRF 视图（API 端点）默认要求用户认证（应该是限定了 DRF 视图才会如此））
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
 
@@ -351,9 +347,13 @@ REST_FRAMEWORK = {
         # or allow read-only access for unauthenticated users.
         # 'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
     ],
-    'UNAUTHENTICATED_USER': None,  # 未认证时不设置匿名用户
+    # 未认证时不设置匿名用户
+    'UNAUTHENTICATED_USER': None,
     # 认证相关配置
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        # 只适合开发阶段使用
+        # 'rest_framework.authentication.BasicAuthentication',
+
         # 启用 Session 认证，使用 Django 的会话框架，过期时间由 Django 的会话设置控制。缺点不适合前后端分离架构。
         # 实践发现，这个控制了 drf 的 api-auth/ 相关登入登出
         # 而且，django 自带的 admin 与其是共用的，登入登出二者都会受影响
