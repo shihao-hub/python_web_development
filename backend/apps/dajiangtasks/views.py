@@ -9,7 +9,7 @@ from django.http.request import HttpRequest
 from . import models, forms
 
 
-# todo: 为什么 get 不需要权限认证？
+# todo: 为什么 get 不需要权限认证？（drf 全局设置后，get 也需要认证）
 def task_list(request: HttpRequest):
     """列出任务列表"""
     if request.method not in ["GET"]:
@@ -20,7 +20,7 @@ def task_list(request: HttpRequest):
     return JsonResponse(data, status=200, safe=False, json_dumps_params={"ensure_ascii": False})
 
 
-# todo: 为什么 post 需要权限认证？我使用的原始 django 呀。
+# todo: 为什么 post 需要权限认证？我使用的原始 django 呀。NO，是请求的表头需要携带 X-CSRFToken | @csrf_exempt 禁用 CSRF
 def task_create(request: HttpRequest):
     """创建任务"""
     if request.method not in ["POST"]:
