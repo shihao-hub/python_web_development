@@ -1,8 +1,12 @@
+from typing import Union
+
 import requests
 from loguru import logger
 
+from django.core.handlers.wsgi import WSGIRequest
 from django.urls import reverse
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
+from rest_framework.request import Request
 
 
 # todo: 为了安全起见，需要在此处做权限认证，因为我发现，哪怕是基于 drf 框架的插件，权限居然用的不是 drf 的
@@ -13,7 +17,11 @@ class LoginRedirectMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
-    def __call__(self, request):
+        # [note] PyCharm Django Server 配置好了才能不需要这样，那时候就能直接调试了，必须找到原因！（应该是某个第三方库导致的）
+        # import traceback
+        # logger.debug("{}", traceback.print_stack())
+
+    def __call__(self, request: Union[HttpRequest, WSGIRequest, Request]):  # fixme: Union xxx
         response = self.get_response(request)
 
         # todo: 确认一下，是不是 cookies/token/jwt 任何一个通过都行，还是说按顺序校验的？那岂不是无法复用 django 的登录页面了？
@@ -38,10 +46,13 @@ class LoginRedirectMiddleware:
         if response.status_code == 404:
             logger.info("{} {}", request.path, response.status_code)
 
+        # fixme: 此处暂且注释掉，401 和 403 并不只是权限有问题，原始 django 的 `CSRF verification failed` 也会如此响应...
         # logger.debug("{}", request.path)
-        if response.status_code in [401, 403]:
-            login_url = reverse('rest_framework:login')
-            redirect_url = f"{login_url}?next={request.path}"
-            return HttpResponseRedirect(redirect_url)
+        # if response.status_code in [401, 403]:
+        #     # logger.info("{}", request.headers)
+        #     # logger.info("{} {}", request.path, response.status_code)
+        #     login_url = reverse('rest_framework:login')
+        #     redirect_url = f"{login_url}?next={request.path}"
+        #     return HttpResponseRedirect(redirect_url)
 
         return response
