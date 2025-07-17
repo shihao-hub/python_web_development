@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>任务列表</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+
+{% comment %}
+todo: css - tailwindcs | js - 待定 | backend - django
+{% endcomment %}
+<div class="flex flex-col items-center justify-center mt-4">
+    <div class="text-center text-3xl text-blue-500 font-bold mb-6">任务列表</div>
+
+    <div class="space-y-4">
+        {% for task in tasks %}
+            <div class="grid grid-cols-3 space-x-6">
+                <div>
+                    <label>
+                        <input class="border border-gray-300" value="{{ forloop.counter }}. {{ task.name }}">
+                    </label>
+                </div>
+                <div>
+                    {{ task.get_status_display }}
+                </div>
+                <div>
+                    (<a href="{% url 'dajiangtasks:task_update' task.id %}"
+                        class="text-blue-500 hover:underline">更新</a> |
+                    <a href="{% url 'dajiangtasks:task_delete' task.id %}" class="text-red-500 hover:underline">删除</a>)
+                </div>
+            </div>
+
+        {% endfor %}
+        <div class="flex justify-center mt-4">
+            <div class="rounded-lg bg-blue-500 p-3 text-white hover:bg-gray-400">
+                <a href="{% url 'dajiangtasks:task_create' %}">添加新任务</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+</body>
+</html>
