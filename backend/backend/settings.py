@@ -45,7 +45,7 @@ ALLOWED_HOSTS = [
 # 自动发现应用的 admin.py 文件，将模型注册到 Django 管理后台
 INSTALLED_APPS = [
     # 美化类 app 需要放在最前面
-    "drf_material",  # 基于 Google Material Design 的现代化界面，目前已知的是美化了 drf 的登录页面
+    # "drf_material",  # 基于 Google Material Design 的现代化界面，目前已知的是美化了 drf 的登录页面（但是也很丑）
     # "simpleui",  # Django Admin界面美化第三方插件，基于 element-ui + vue 开发 -> 国产，但是需要稍微配置一下
 
     # "grappelli",  # Django Admin 界面美化第三方插件 -> 一般，有点简单
