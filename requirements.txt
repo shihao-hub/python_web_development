@@ -24,7 +24,7 @@ python-dotenv
 loguru
 requests
 schema
-
+python-memcached
 pandas
 pandapower
 numba
