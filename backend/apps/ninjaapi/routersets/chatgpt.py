@@ -104,7 +104,7 @@ def english_translation_and_grammar_analysis(request: WSGIRequest, raw_prompt: s
 
 
 def get_text_of_html(html_content: str):
-    soup = bs4.BeautifulSoup(html_content, 'html.parser')
+    soup = bs4.BeautifulSoup(html_content, "html.parser")
     return soup.get_text(strip=False)  # strip=True 会去除空白符
 
 

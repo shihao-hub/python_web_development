@@ -384,12 +384,12 @@ class View:
         def _create_file_upload_component(self, set_button_enabled: Callable[[bool], Any]) -> ui.upload:
             """创建文件上传相关组件"""
 
-            def _handle_upload(e: UploadEventArguments):
+            async def _handle_upload(e: UploadEventArguments):
                 logger.debug("[on_upload] name: {}, type: {}", e.name, e.type)
-                filepath = file_upload_manager.save(e.content.read(),
-                                                    os.path.splitext(e.name)[1],
-                                                    is_temp=True,
-                                                    ret_relative_path=True)
+                filepath = await file_upload_manager.save(e.content.read(),
+                                                          os.path.splitext(e.name)[1],
+                                                          is_temp=True,
+                                                          ret_relative_path=True)
                 self._uploaded_files.append(filepath)
                 set_button_enabled(True)
 

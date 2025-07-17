@@ -7,9 +7,11 @@ from django.core import serializers
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, JsonResponse
 from django.http.request import HttpRequest
+from django.template.defaultfilters import filesizeformat
 
 from . import models, forms
 
+# todo: 阅读一下 django 关于 django.conf.settings 的源代码
 
 class NotAllowedMethodJsonResponse(JsonResponse):
     def __init__(self, *args, **kwargs):

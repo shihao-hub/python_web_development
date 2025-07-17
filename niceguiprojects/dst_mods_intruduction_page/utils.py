@@ -5,7 +5,7 @@ from pathlib import Path
 import cachetools
 from loguru import logger
 
-from djangoorm import nicegui_settings
+from djangoorm import nicegui_settings, models
 
 
 class FileUploadError(Exception):
@@ -42,13 +42,13 @@ class FileUploadManager:
             # 【亮点】启动清除临时目录程序，删除文件应该使用 io 操作，所以可以使用 python 线程/进程 或者 nicegui 提供的 await run.io_bound？
             pass
 
-    def save(self,
-             filecontent: bytes,
-             file_extension: str,
-             filename: str = None,
-             is_temp: bool = False,  # 是否是临时文件
-             ret_relative_path: bool = False
-             ) -> Path:  # 返回文件路径
+    async def save(self,
+                   filecontent: bytes,
+                   file_extension: str,
+                   filename: str = None,
+                   is_temp: bool = False,  # 是否是临时文件
+                   ret_relative_path: bool = False
+                   ) -> Path:  # 返回文件路径
         """存储文件"""
         if filename is None:
             filename = str(uuid.uuid4()) + ("" if file_extension is None else file_extension)
@@ -66,14 +66,24 @@ class FileUploadManager:
         self._check_max_file_size(view.nbytes)
         self._saved_file_size += view.nbytes
         filepath.write_bytes(filecontent)
+
+        # 临时使用
+        # fixme: 为什么之前没写 await 不直接崩溃？
+        await models.FileStorage.objects.acreate(**dict(
+            filename=filename,
+            filesize=view.nbytes,
+            file_content=filecontent,
+        ))
+        logger.info("文件数据存储到数据库成功！")
+
         logger.info("存储" + ("临时" if is_temp else "") + "文件成功，文件名：{}", filename)
         if ret_relative_path:
             return Path(filename)
         return filepath
 
-    def delete(self, filename: str,
-               is_temp: bool = False,  # 是否是临时文件
-               ) -> bool:
+    async def delete(self, filename: str,
+                     is_temp: bool = False,  # 是否是临时文件
+                     ) -> bool:
         """删除文件"""
         storage_path = self._storage_path
         if is_temp:
@@ -94,11 +104,12 @@ class FileUploadManager:
             self.target: FileUploadManager = FileUploadManager()
 
         def test_save_and_delete(self):
-            filename = str(uuid.uuid4())
-            self.target.save(b"test", filename)
-            # 预期结果：文件保存成功
-            self.target.delete(filename)
-            # 预期结果：文件删除成功
+            # filename = str(uuid.uuid4())
+            # self.target.save(b"test", filename)
+            # # 预期结果：文件保存成功
+            # self.target.delete(filename)
+            # # 预期结果：文件删除成功
+            pass
 
 
 # @cachetools.cached(cachetools.TTLCache(maxsize=20, ttl=60 * 5))

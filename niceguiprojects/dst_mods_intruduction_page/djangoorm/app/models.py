@@ -9,6 +9,18 @@ from django.conf import settings
 from django.db import models, transaction
 
 
+class FileStorage(models.Model):
+    """文件存储信息"""
+
+    id = models.AutoField(primary_key=True)
+
+    filename = models.CharField(verbose_name="文件名", max_length=260)
+    filetype = models.CharField(verbose_name="文件类型", max_length=100, null=True)
+    filesize = models.IntegerField(verbose_name="文件大小")
+    file_content = models.BinaryField(verbose_name="文件内容")
+    is_temporary = models.BooleanField(verbose_name="是否是临时文件", default=True)
+
+
 class ErrorFeedbackInfo(models.Model):
     """错误反馈信息"""
 
