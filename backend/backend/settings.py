@@ -276,7 +276,9 @@ LOGGING = {
 
 # 设置 django 静态文件 URL 前缀，形如：{STATIC_URL}/rest_framework/js/bootstrap.min.js
 # 所以，这个并不是决定 django 搜索 static 的方式，只是决定请求的路径？
-STATIC_URL = '/django/static/'
+# 2025-07-18：错，其作用是告诉Django静态文件会存放在各app下的static目录里。
+# STATIC_URL = '/django/static/'
+STATIC_URL = '/static/'
 
 # CDN 集成
 # STATIC_URL = 'https://cdn.example.com/static/'
