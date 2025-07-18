@@ -7,6 +7,21 @@ SQLite As An Application File Format: https://www.sqlite.org/appfileformat.html
 
 import sqlite3
 import os
+import functools
+from datetime import datetime
+
+import pytz
+
+# 【知识点】明确指定时区为中国标准时间
+tz_shanghai = pytz.timezone("Asia/Shanghai")
+now = functools.partial(datetime.now, tz=tz_shanghai)
+
+
+# 注册适配器和转换器，原因：
+# DeprecationWarning: The default datetime adapter is deprecated as of Python 3.12;
+# see the sqlite3 documentation for suggested replacement recipes
+sqlite3.register_adapter(datetime, lambda dt: dt.isoformat())
+sqlite3.register_converter("datetime", lambda ts: datetime.fromisoformat(ts.decode()))
 
 # DDL: 数据定义语言
 DDL = """
@@ -111,24 +126,44 @@ class AppDatabase:
 
 def test():
     conn = sqlite3.connect("./just_sqlite_db.sqlite")
-    conn.execute("""
-    CREATE TABLE IF NOT EXISTS documents (
-        id INTEGER PRIMARY KEY,
-        title TEXT,
-        content TEXT
+    # 【知识点】sqlite 类型 INTEGER 才能自增 AUTOINCREMENT，INT 居然不行！
+    # todo: 每次执行都要创建一下吗？还是说其实 DDL 语句并不是在程序中执行的，而是程序启动前。
+    conn.executescript("""
+    CREATE TABLE IF NOT EXISTS COMPANY(
+        ID INTEGER PRIMARY KEY,
+        NAME           TEXT    NOT NULL, -- 设定为主键后，数据库自动建立索引？
+        AGE            INT     NOT NULL,
+        ADDRESS        CHAR(50),
+        SALARY         REAL,
+        is_deleted INTEGER DEFAULT false,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
     );
+    
+    CREATE TABLE IF NOT EXISTS AUDIT(
+        EMP_ID INT NOT NULL,
+        ENTRY_DATE TEXT NOT NULL
+    );
+    
+    CREATE TRIGGER IF NOT EXISTS audit_log AFTER INSERT ON COMPANY
+    BEGIN
+        INSERT INTO AUDIT(EMP_ID, ENTRY_DATE) VALUES (NEW.ID, NEW.updated_at);
+    END;
     """)
     conn.commit()
 
-    # 插入文档
-    conn.execute("INSERT INTO documents (title, content) VALUES (?, ?)",
-                 ("First Doc", "This is the content of the first document."))
-    # 查询文档
-    cursor = conn.execute("SELECT id, title FROM documents")
-    for row in cursor:
-        print(f"ID: {row[0]}, Title: {row[1]}")
+    conn.execute("INSERT INTO COMPANY (NAME, AGE, created_at, updated_at) VALUES (?, ?, ?, ?)", (
+        "Google",
+        20,
+        now(),
+        now()
+    ))
+    conn.commit()
 
-    # 保存更改
+    cursor = conn.execute("SELECT * FROM COMPANY")
+    for row in cursor:
+        print(f"{row}")
+
     conn.commit()
 
 
