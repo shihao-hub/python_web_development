@@ -1,7 +1,11 @@
 import sqlite3
-from typing import Annotated
+from typing import Annotated, Type
 
 from loguru import logger
+
+from django.http.request import HttpRequest
+from django import forms
+from django.db import models
 
 from . import exceptions
 
@@ -65,3 +69,34 @@ class Cache:
         if len(rows) > max_len:
             formated += f", ...[{len(rows) - max_len} remaining]"
         return f"<Cache: {formated}>"
+
+
+class HttpRequestProxy:
+    """django request proxy"""
+
+    def __init__(self, request: HttpRequest):
+        self._request = request
+
+    def value(self) -> HttpRequest:
+        """返回 request """
+        return self._request
+
+    def is_form_request(self):
+        """用户的请求是通过表单 POST 提交数据的"""
+        # 注意，django 对于表单和 json 有不一样的处理。而且，forms.py 主要还是给表单使用的。
+        return self._request.content_type in ["application/x-www-form-urlencoded", "multipart/form-data"]
+
+    def is_json_request(self):
+        """用户的请求是通过 JSON POST 提交数据的"""
+        return self._request.content_type == "application/json"
+
+    def save_by_form(self, model_form: Type[forms.ModelForm]) -> bool:
+        """通过 Form 类直接保存数据"""
+        if self._request.method != "POST":
+            raise exceptions.NotAllowedMethodError(self._request.method)
+        # 使用了自定义的 For m类对用户提交的数据(request.POST)进行验证，并将通过验证的数据存入数据库。
+        form = model_form(self._request.POST)
+        if form.is_valid():
+            form.save()
+            return True
+        return False
